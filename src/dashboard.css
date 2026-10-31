@@ -29,9 +29,7 @@ body.dash-on h1,body.dash-on h2,body.dash-on h3,body.dash-on .today-date{color:v
 body.dash-on input,body.dash-on select,body.dash-on textarea{background:var(--soft);color:var(--dtxt);border:1px solid var(--line)}
 body.dash-on .muted,body.dash-on small{color:var(--muted)}
 body.dash-on table{color:var(--dtxt)}
-body.dash-on footer{background:var(--foot);color:var(--foottx)}
-body.dash-on footer a{color:var(--foottx)}
-body.dash-on .bottom-nav{background:var(--foot)}
+
 body.dash-on .cosmos-scene{opacity:.12}
 
 #dash-top{max-width:none;margin:0;padding:0}
@@ -93,3 +91,11 @@ body.dash-on tr:nth-child(even) td{background:rgba(128,128,128,.07)}
 body.dash-on .bottom-nav span,body.dash-on .tool-card .icon,body.dash-on .brand-mark{display:none}
 body.dash-on .bottom-nav{border-top:1px solid var(--pborder)}
 body.dash-on main,body.dash-on .main{width:100%;max-width:none;padding-left:0;padding-right:0}
+
+/* ---- फ़ुटर और नीचे की नेविगेशन-पट्टी: शीर्ष-पट्टी जैसा एक ही रंग, पूरा पढ़ने लायक ---- */
+body.dash-on footer,body.dash-on .site-footer,body.dash-on .bottom-nav{background:var(--dhead)!important;color:var(--dheadtx)!important;border-radius:0!important;box-shadow:none!important;border:0;border-top:1px solid var(--pborder)}
+body.dash-on footer *,body.dash-on .site-footer *,body.dash-on .bottom-nav *{color:var(--dheadtx)!important;opacity:1!important;text-shadow:none!important}
+body.dash-on footer a{text-decoration:none}
+body.dash-on footer a:hover{text-decoration:underline}
+body.dash-on .bottom-nav button{background:transparent!important;border:0!important;border-radius:0!important}
+body.dash-on .bottom-nav button.selected{background:rgba(0,0,0,.18)!important;font-weight:700}
