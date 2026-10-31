@@ -1,0 +1,28 @@
+/* सूचना-पेज (गोपनीयता, अस्वीकरण, नियम, कुकीज़, सेवाएँ, संपर्क, हमारे बारे में) — होम जैसा Drik शैली का डिज़ाइन।
+   दो थीम: Modern (डिफ़ॉल्ट) और Classic (नारंगी)। html.ip-classic लगने पर Classic। */
+html{color-scheme:light;--bg:#efefef;--panel:#fff;--head:#5c5f63;--headtx:#fff;--bar:#a80f0f;--tx:#222;--mut:#6c6760;--acc:#b8650b;--bd:#5c5f63;--line:#d9d9d9;--field:#fff}
+html.ip-classic{--bg:#ffb95c;--panel:#ffbb5f;--head:#d98a4c;--headtx:#3a1500;--bar:#9f2b00;--tx:#3a1a00;--mut:#6b3d12;--acc:#8b1a00;--bd:#d98a4c;--line:#e39b47;--field:#ffd79a}
+html body{background:var(--bg);color:var(--tx);line-height:1.75;font-family:"Noto Sans Devanagari","DM Sans",system-ui,sans-serif}
+html body header{background:var(--bar);color:#fff;border:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:10px max(16px,calc((100% - 1100px)/2))}
+html body header strong{font-size:1.15rem;color:#fff}
+html body header nav{margin:0;gap:0 2px;flex:1}
+html body header a{color:#fff;margin:0;padding:7px 10px;text-decoration:none;font-size:.9rem}
+html body header a:hover{background:rgba(255,255,255,.2)}
+html body header .ip-theme{background:#fff;color:var(--bar);border:0;padding:6px 12px;font:inherit;font-size:.82rem;font-weight:700;cursor:pointer}
+html body main{max-width:none;margin:0;padding:0}
+html body article{background:var(--panel);border:0;border-radius:0;box-shadow:none;padding:0 0 36px;min-height:60vh;border-bottom:1px solid var(--bd)}
+html body article>*{max-width:1100px;margin-left:auto;margin-right:auto;padding-left:16px;padding-right:16px}
+html body article>h1{max-width:none;background:var(--head);color:var(--headtx);margin:0 0 14px;padding:13px max(16px,calc((100% - 1100px)/2 + 16px));font-size:1.3rem;line-height:1.4}
+html body article h2{color:var(--acc);font-size:1.05rem;margin:24px auto 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+html body article p,html body article li{color:var(--tx)}
+html body article a{color:var(--acc)}
+html body small{color:var(--mut)}
+html body article>nav{border-top:1px solid var(--bd);margin-top:24px;padding-top:12px;padding-bottom:0}
+html body article>nav a{padding:4px 8px}
+html body input,html body textarea,html body select{background:var(--field);color:var(--tx);border:1px solid var(--bd);border-radius:0}
+html body label{color:var(--tx)}
+html body .primary-btn{background:var(--head);color:var(--headtx);border:1px solid var(--head);border-radius:0}
+html body table{border-collapse:collapse;width:100%}html body th{background:var(--head);color:var(--headtx);padding:8px 10px;text-align:left}html body td{padding:8px 10px;border-bottom:1px solid var(--line)}
+html body footer{background:var(--head);color:var(--headtx);border:0;padding:16px max(16px,calc((100% - 1100px)/2));font-size:.9rem}
+html body footer *,html body footer a{color:var(--headtx)}
+html body footer p{margin:4px 0}
