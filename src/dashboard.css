@@ -1,5 +1,5 @@
 /* Arunodaya dashboard theme — Drik Panchang जैसा नरम (soft) रंग। केवल body.dash-on पर सक्रिय।
-   डिफ़ॉल्ट: हल्का (light)। गहरा थीम: body.dash-dark ("थीम बदलें" बटन)। */
+   डिफ़ॉल्ट: Modern। Classic (नारंगी): body.dash-classic ("थीम बदलें" बटन)। */
 body.dash-on{
   --navy:#a80f0f;--navy-2:#8a0b0b;--orange:#d9822b;
   --ink:#2b2b2b;--muted:#6c6760;--line:#d9d9d9;--paper:#ffffff;--soft:#f5f5f5;
@@ -99,3 +99,13 @@ body.dash-on footer a{text-decoration:none}
 body.dash-on footer a:hover{text-decoration:underline}
 body.dash-on .bottom-nav button{background:transparent!important;border:0!important;border-radius:0!important}
 body.dash-on .bottom-nav button.selected{background:rgba(0,0,0,.18)!important;font-weight:700}
+
+/* ---- वैदिक समय के नीचे की सूची ---- */
+#dash-live{border-top:1px solid var(--pborder)}
+.dl-h{background:var(--tint);color:var(--dtxt);font-weight:600;font-size:.85rem;padding:6px 14px;border-bottom:1px solid var(--line)}
+.dl-r{display:flex;justify-content:space-between;gap:12px;padding:7px 14px;border-bottom:1px solid var(--line);text-align:left}
+.dl-r>span{opacity:.75;flex:none}.dl-r>b{text-align:right;color:var(--dacc);font-weight:600}.dl-r small{display:block;font-weight:400;color:var(--muted)}
+.dl-good{color:#1b7a3a}.dl-bad{color:#c0392b}
+body.dash-classic .dl-good{color:#14602c}body.dash-classic .dl-bad{color:#9f1a00}
+.dl-bar{height:6px;background:var(--line);margin:10px 14px 2px}.dl-bar i{display:block;height:100%;background:var(--dacc)}
+.dl-cap{display:block;padding:0 14px 10px;color:var(--muted)}
