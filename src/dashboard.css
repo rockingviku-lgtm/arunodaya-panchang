@@ -2,8 +2,8 @@
    डिफ़ॉल्ट: Modern। Classic (नारंगी): body.dash-classic ("थीम बदलें" बटन)। */
 body.dash-on{
   --navy:#a80f0f;--navy-2:#8a0b0b;--orange:#d9822b;
-  --ink:#2b2b2b;--muted:#6c6760;--line:#d9d9d9;--paper:#ffffff;--soft:#f5f5f5;
-  --dbg:#efefef;--dcard:#ffffff;--dhead:#5c5f63;--dheadtx:#ffffff;--dtxt:#222222;--dacc:#b8650b;
+  --ink:#111111;--muted:#444444;--line:#d9d9d9;--paper:#ffffff;--soft:#f5f5f5;
+  --dbg:#efefef;--dcard:#ffffff;--dhead:#5c5f63;--dheadtx:#ffffff;--dtxt:#111111;--dacc:#111111;
   --bar:#a80f0f;--bartx:#ffffff;--tint:#e6e6e6;--chart:#d4d4cf;--chartink:#2b2b2b;--btnbg:#ffffff;--btntx:#a40d0d;--btnbd:#d8cfc6;
   --today:#f6cfc8;--todaytx:#5a1a14;--foot:#3b3a39;--foottx:#e6e1db;--pborder:#5c5f63;
   background:var(--dbg);color:var(--dtxt)}
@@ -14,6 +14,7 @@ body.dash-on.dash-classic{ /* Drik "Classic" — नारंगी */
   --today:#f3857a;--todaytx:#3a0a05;--foot:#7a2a00;--foottx:#ffe6c4;--pborder:#d98a4c}
 
 body.dash-on a{color:var(--dacc)}
+body.dash-on:not(.dash-classic) a:hover{text-decoration:underline}
 body.dash-on .topbar{background:var(--bar);color:var(--bartx);min-height:56px;padding:6px 14px}
 body.dash-on .topbar .brand-name,body.dash-on .topbar .brand-sub,body.dash-on .topbar a,body.dash-on .topbar button{color:var(--bartx)}
 body.dash-on .today-btn{background:#fff;color:#a40d0d}
