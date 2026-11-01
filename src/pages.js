@@ -8,6 +8,7 @@ import {
   grahaPositions, ascendantSidereal, chaughadiya, horas, planetaryEvents, RASHI_HI, GRAHA_ORDER
 } from './graha-engine.js';
 import { mountRashifal } from './rashifal.js';
+import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pages.js';
 
 const TZ = 'Asia/Kolkata', STORE = 'arunodaya.place';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,7 +27,7 @@ const RASHI_LORD = ['मंगल', 'शुक्र', 'बुध', 'चंद�
 const NAK_LORD = ['केतु', 'शुक्र', 'सूर्य', 'चंद्र', 'मंगल', 'राहु', 'गुरु', 'शनि', 'बुध'];
 const evGlyph = t => /युति/.test(t) ? '☌' : /60°/.test(t) ? '⚹' : /90°/.test(t) ? '□' : /120°/.test(t) ? '△' : /150°/.test(t) ? '⚻' : /180°/.test(t) ? '☍' : (PG[t.split(' ')[0]] || '●');
 
-const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा' };
+const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES };
 const KEYS = Object.keys(TITLES);
 
 // ---------- साझा स्थिति ----------
@@ -49,6 +50,8 @@ const CSS = `<style id="pg-style">
 .pg-tool button{cursor:pointer;color:var(--btntx,#a80f0f);font-weight:600}
 .pg-tool button.on{background:var(--dhead,#5c5f63);color:var(--dheadtx,#fff)}
 .pg-tool .pl{min-width:230px}
+#pg-root .pg-box>h2,#pg-root .pg-bar b{color:var(--dheadtx,#fff)}
+#pg-root .pg-bar b{color:#fff}
 .pg-main{padding:0 max(16px,env(safe-area-inset-left,0px)) 40px}
 .pg-box{background:var(--dcard,#fff);border:1px solid var(--pborder,#5c5f63);margin-top:14px}
 .pg-box>h2{margin:0;background:var(--dhead,#5c5f63);color:var(--dheadtx,#fff);font-size:15px;font-weight:600;padding:9px 14px;text-align:center}
@@ -65,7 +68,7 @@ const CSS = `<style id="pg-style">
 .pg-note{padding:10px 14px;opacity:.75;font-size:13px}
 .pg-d1{display:block;width:100%;max-width:380px;margin:10px auto}
 @media(max-width:800px){.pg-cols{column-count:1}.pg-two{grid-template-columns:1fr}}
-</style>`;
+${MILAN_CSS}</style>`;
 
 // ---------- चार्ट (उत्तर / दक्षिण भारतीय) ----------
 const HC = [[150, 70], [75, 30], [30, 75], [70, 150], [30, 225], [75, 270], [150, 230], [225, 270], [270, 225], [230, 150], [270, 75], [225, 30]];
@@ -210,6 +213,8 @@ const PAGES = {
   }
 };
 
+Object.assign(PAGES, makePages(() => refresh()));
+
 function bindDate(root) {
   root.querySelector('#pg-date')?.addEventListener('change', e => { if (e.target.value) { S.date = e.target.value; refresh(); } });
   root.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => { const n = +b.dataset.d; S.date = n ? shiftDate(S.date, n) : todayIST(); refresh(); }));
@@ -259,6 +264,7 @@ function sync() {
 export function mountPages() {
   if (window.__pgMounted) return;
   window.__pgMounted = true;
+  mountMilanTools();
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-more]');
     if (!b || !PAGES[b.dataset.more]) return;
