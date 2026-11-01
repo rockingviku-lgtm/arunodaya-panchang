@@ -5,7 +5,7 @@ import {
   DEFAULT_PLACE, NAKSHATRAS, WEEKDAYS_HI, getPanchangDay, getDayTimes, tithiAt, tithiName, moonSidereal, sunSidereal,
   elongation, lunarMonth, todayIST, shiftDate
 } from './festival-calendar.js';
-import { planetSign, grahaPositions, RASHI_HI } from './graha-engine.js';
+import { planetSign, grahaPositions, chaughadiya, RASHI_HI } from './graha-engine.js';
 import { computeKundli, birthToUtc } from './kundli-doshas.js';
 import { findEclipses } from './eclipse-engine.js';
 
@@ -27,7 +27,7 @@ const istMidnight = iso => { const [y, m, d] = iso.split('-').map(Number); retur
 
 export const EXTRA_TITLES = {
   mangal: 'मंगल दोष', kaalsarp: 'काल सर्प दोष', sadesati: 'साढ़ेसाती और ढैया', shubh: 'शुभ कार्य मुहूर्त',
-  grahan: 'सूर्य-चंद्र ग्रहण', panchak: 'पंचक और भद्रा', chandrodaya: 'सूर्योदय-चंद्रोदय तालिका'
+  grahan: 'सूर्य-चंद्र ग्रहण', panchak: 'पंचक और भद्रा', chandrodaya: 'सूर्योदय-चंद्रोदय तालिका', timeline: 'पंचांग टाइमलाइन'
 };
 const TOOL_INFO = {
   mangal: ['मंगल दोष', 'मांगलिक जाँच और वर-वधू तुलना'],
@@ -36,7 +36,8 @@ const TOOL_INFO = {
   shubh: ['शुभ कार्य मुहूर्त', 'विवाह, गृह प्रवेश, वाहन, नामकरण'],
   grahan: ['सूर्य-चंद्र ग्रहण', 'तारीख़, समय, सूतक और दृश्यता'],
   panchak: ['पंचक और भद्रा', 'महीने भर के समय'],
-  chandrodaya: ['सूर्योदय-चंद्रोदय', 'महीने की पूरी तालिका']
+  chandrodaya: ['सूर्योदय-चंद्रोदय', 'महीने की पूरी तालिका'],
+  timeline: ['पंचांग टाइमलाइन', 'पूरे दिन की तिथि, नक्षत्र, योग, करण एक रेखा पर']
 };
 const SIGN_OF = (p, g) => p[g].sign;
 
@@ -345,11 +346,69 @@ function riseBody(place) {
     <p class="pg-note">जिस दिन चंद्रमा का उदय या अस्त उसी तारीख़ में नहीं पड़ता (चंद्रोदय हर दिन लगभग 50 मिनट देर से होता है, इसलिए कभी-कभी एक दिन छूट जाता है), वहाँ अगले दिन का समय तारीख़ के साथ दिखाया गया है। सभी समय भारतीय समय में, चुने स्थान के अनुसार हैं। सूर्योदय-सूर्यास्त उदय के ऊपरी किनारे और वायुमंडलीय अपवर्तन के साथ गिने गए हैं।</p></div>`;
 }
 
+
+// ---------- पंचांग टाइमलाइन (Drik जैसी: सूर्योदय से अगले सूर्योदय तक एक रेखा पर) ----------
+function timelineBody(place, iso) {
+  const pd = getPanchangDay(iso, place), dt = getDayTimes(iso, place), nx = getDayTimes(shiftDate(iso, 1), place);
+  if (!dt || !nx) return '<div class="pg-box"><h2>टाइमलाइन</h2><p class="pg-note">इस स्थान और तारीख़ पर सूर्योदय-सूर्यास्त उपलब्ध नहीं है।</p></div>';
+  const sr = +dt.sunrise, ss = +dt.sunset, sr2 = +nx.sunrise, d0 = istMidnight(iso);
+  const T0 = d0 + Math.floor((sr - d0) / HOUR) * HOUR, T1 = T0 + 25 * HOUR;
+  const W = 1200, L = 78, R = 24, PW = W - L - R, X = ms => L + (ms - T0) / (T1 - T0) * PW;
+  const AX = 74, rows = [['तिथि', pd.tithis, 140], ['नक्षत्र', pd.nakshatras, 206], ['योग', pd.yogas, 272], ['करण', pd.karanas, 338]], WK = 416, H = 470;
+  const hhmm = ms => clock(ms).replace(' AM', ' am').replace(' PM', ' pm');
+  let g = '';
+  // रात की छाया (सूर्योदय से पहले और सूर्यास्त से सूर्योदय तक)
+  g += `<rect x="${L}" y="14" width="${X(sr) - L}" height="${H - 14}" class="tl-night"/><rect x="${X(ss)}" y="14" width="${Math.min(X(sr2), L + PW) - X(ss)}" height="${H - 14}" class="tl-night"/><rect x="${Math.min(X(sr2), L + PW)}" y="14" width="${Math.max(0, L + PW - X(sr2))}" height="${H - 14}" class="tl-night"/>`;
+  // मुख्य अक्ष और घंटे
+  g += `<line x1="${L}" y1="${AX}" x2="${L + PW}" y2="${AX}" class="tl-axis"/>`;
+  for (let t = T0; t <= T1; t += HOUR) {
+    const hr = new Date(t + 330 * MIN).getUTCHours(), x = X(t);
+    g += `<line x1="${x}" y1="${AX - 5}" x2="${x}" y2="${AX + 5}" class="tl-tick"/><text x="${x}" y="${AX + 22}" class="tl-t tl-hr" text-anchor="middle">${hr % 12 || 12}</text>`;
+  }
+  // सूर्योदय / सूर्यास्त
+  const sun = (ms, lab) => `<path d="M${X(ms) - 13} ${AX} A13 13 0 0 1 ${X(ms) + 13} ${AX} Z" class="tl-sun"/><text x="${X(ms)}" y="${AX - 20}" class="tl-t tl-sm" text-anchor="middle">${lab}</text>`;
+  g += sun(sr, hhmm(sr)) + sun(ss, hhmm(ss)) + (sr2 <= T1 ? sun(sr2, hhmm(sr2)) : '');
+  // चंद्रोदय / चंद्रास्त
+  for (const [d, lab] of [[pd.moonrise, 'चंद्रोदय'], [pd.moonset, 'चंद्रास्त']]) if (d && +d >= T0 && +d <= T1) g += `<circle cx="${X(+d)}" cy="${AX}" r="8" class="tl-moon"/><text x="${X(+d)}" y="${AX + 40}" class="tl-t tl-sm" text-anchor="middle">${lab} ${hhmm(+d)}</text>`;
+  // अभी
+  if (iso === todayIST()) { const n = Date.now(); if (n >= T0 && n <= T1) g += `<line x1="${X(n)}" y1="${AX}" x2="${X(n)}" y2="${H - 30}" class="tl-now"/><circle cx="${X(n)}" cy="${AX}" r="9" class="tl-nowc"/>`; }
+  // घटनाएँ (बदलाव) — एक साथ पड़ने वाले इकट्ठे
+  const ev = [];
+  const addEv = (list, kind) => list.forEach(s => { if (s.end && +s.end > sr && +s.end < sr2) ev.push({ t: +s.end, kind }); });
+  addEv(pd.tithis, 'तिथि'); addEv(pd.nakshatras, 'नक्षत्र'); addEv(pd.yogas, 'योग'); addEv(pd.karanas, 'करण'); addEv(pd.moonRashi, 'चंद्र राशि');
+  ev.sort((a, b) => a.t - b.t);
+  const clusters = [];
+  for (const e of ev) { const c = clusters[clusters.length - 1]; if (c && e.t - c.t <= 4 * MIN) c.kinds.push(e.kind); else clusters.push({ t: e.t, kinds: [e.kind] }); }
+  clusters.forEach((c, i) => { g += `<text x="${X(c.t)}" y="${AX - 34 - (i % 2) * 12}" class="tl-t tl-num" text-anchor="middle">${i + 1}</text><line x1="${X(c.t)}" y1="${AX - 24 - (i % 2) * 12}" x2="${X(c.t)}" y2="${AX}" class="tl-tick"/>`; });
+  // पंक्तियाँ
+  for (const [name, list, y] of rows) {
+    g += `<text x="6" y="${y + 4}" class="tl-t tl-rl">${name}</text><line x1="${X(sr)}" y1="${y}" x2="${X(sr2)}" y2="${y}" class="tl-row"/>`;
+    let prev = sr;
+    list.forEach((s, i) => {
+      const end = s.end ? +s.end : sr2, x0 = X(prev), x1 = X(Math.min(end, sr2)), w = x1 - x0;
+      if (w > 30) g += `<text x="${(x0 + x1) / 2}" y="${y + 20}" class="tl-t tl-seg" text-anchor="middle">${esc(s.label)}</text>`;
+      if (s.end && end < sr2 - 60000) g += `<line x1="${x1}" y1="${AX}" x2="${x1}" y2="${y}" class="tl-dash"/><line x1="${x1}" y1="${y - 5}" x2="${x1}" y2="${y + 5}" class="tl-tick"/><text x="${x1}" y="${y - 9}" class="tl-t tl-sm" text-anchor="middle">${hhmm(end)}</text>`;
+      prev = end;
+    });
+  }
+  // वार और अशुभ चौघड़िया
+  const ch = chaughadiya(iso, place), bad = [...ch.day, ...ch.night].filter(c => !c.good);
+  g += `<text x="6" y="${WK + 4}" class="tl-t tl-rl">वार</text><line x1="${X(sr)}" y1="${WK}" x2="${X(sr2)}" y2="${WK}" class="tl-row"/>`;
+  bad.forEach(c => { const a = X(+c.start), b = X(+c.end); g += `<line x1="${a}" y1="${WK - 8}" x2="${a}" y2="${WK + 8}" class="tl-tick"/><line x1="${b}" y1="${WK - 8}" x2="${b}" y2="${WK + 8}" class="tl-tick"/><line x1="${a}" y1="${WK}" x2="${b}" y2="${WK}" class="tl-bad"/><text x="${(a + b) / 2}" y="${WK - 12}" class="tl-t tl-sm" text-anchor="middle">${esc(c.name)}</text>`; });
+  g += `<text x="${(X(sr) + X(sr2)) / 2}" y="${WK + 34}" class="tl-t tl-seg" text-anchor="middle">${esc(wdOf(iso))}</text>`;
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="पंचांग टाइमलाइन"><style>.tl-t{fill:var(--dtxt,#111);font-family:inherit}.tl-night{fill:rgba(0,0,0,.10)}.tl-axis{stroke:var(--dtxt,#111);stroke-width:2}.tl-tick{stroke:var(--dtxt,#111);stroke-width:1.5}.tl-row{stroke:var(--dtxt,#111);stroke-width:1;opacity:.55}.tl-dash{stroke:var(--dtxt,#111);stroke-width:1;stroke-dasharray:4 4;opacity:.45}.tl-sun{fill:#f3a21b;stroke:#a35f00;stroke-width:1}.tl-moon{fill:#9aa1ab;stroke:#fff;stroke-width:2}.tl-now{stroke:var(--dtxt,#111);stroke-width:1.5;stroke-dasharray:3 4}.tl-nowc{fill:#fff;stroke:var(--dtxt,#111);stroke-width:2}.tl-bad{stroke:#b3261e;stroke-width:2.5}.tl-hr{font-size:15px}.tl-sm{font-size:13px}.tl-seg{font-size:16px;font-weight:600}.tl-rl{font-size:15px;font-weight:700}.tl-num{font-size:14px;font-weight:700}</style>${g}</svg>`;
+  const foot = clusters.map((c, i) => `<span style="display:inline-block;margin:2px 16px 2px 0"><b>${i + 1}.</b> ${esc([...new Set(c.kinds)].join(', '))} <small>(${hhmm(c.t)})</small></span>`).join('');
+  return `<div class="pg-box"><h2>टाइमलाइन · ${fmtDay(iso)}, ${wdOf(iso)} · ${esc(place.name)}</h2>
+    <div style="overflow-x:auto"><div style="min-width:980px;padding:8px 10px 0">${svg}</div></div>
+    <div style="padding:6px 14px 12px;font-size:14px">${foot}</div>
+    <p class="pg-note">रेखा सूर्योदय (${hhmm(sr)}) से अगले सूर्योदय (${hhmm(sr2)}) तक है। गहरा भाग रात है। तिथि, नक्षत्र, योग और करण के नीचे उनके बदलने का समय है। ऊपर के अंक उन क्षणों को बताते हैं जब एक या अधिक चीज़ें बदलती हैं, और नीचे सूची में उनके नाम हैं। लाल पट्टियाँ अशुभ चौघड़िया (उद्वेग, रोग, काल) हैं। भूरा गोला चंद्रोदय या चंद्रास्त है। आज की तारीख़ पर सफ़ेद बिंदु अभी का समय है।</p></div>`;
+}
+
 // ---------- फ्रेम: टूलबार, बाइंडिंग, पेज ----------
 const birthFields = (k, lab) => `<span class="mp-grp"><b>${lab}</b><input type="date" data-b="${k}" data-f="date" value="${esc(B[k].date)}" aria-label="${lab} जन्म तारीख़"><input type="time" data-b="${k}" data-f="time" value="${esc(B[k].time)}" aria-label="${lab} जन्म समय"></span>`;
 const monthTool = (k, S) => `<button type="button" data-mv="${k}:-1">‹ पिछला</button><input type="month" data-s="${k}" data-f="month" value="${S.month}"><button type="button" data-mv="${k}:0">इस माह</button><button type="button" data-mv="${k}:1">अगला ›</button>`;
 
-export function makeExtraPages({ refresh, getPlace, placeBox }) {
+export function makeExtraPages({ refresh, getPlace, placeBox, S, bindDate }) {
   const bind = root => {
     root.querySelectorAll('[data-b][data-f]').forEach(el => el.addEventListener('change', () => { B[el.dataset.b][el.dataset.f] = el.value; refresh(); }));
     root.querySelectorAll('[data-map]').forEach(b => b.addEventListener('click', async () => {
@@ -401,6 +460,10 @@ export function makeExtraPages({ refresh, getPlace, placeBox }) {
       body: () => grahanBody(getPlace()), bind
     },
     panchak: { tool: () => monthTool('pk', PK), body: () => panchakBody(), bind },
+    timeline: {
+      tool: () => `${placeBox()}<button type="button" data-d="-1">‹ पिछला दिन</button><input type="date" id="pg-date" value="${S.date}"><button type="button" data-d="0">आज</button><button type="button" data-d="1">अगला दिन ›</button>`,
+      body: () => timelineBody(getPlace(), S.date), bind: bindDate
+    },
     chandrodaya: { tool: () => `${placeBox()}${monthTool('rt', RT)}`, body: () => riseBody(getPlace()), bind }
   };
 }

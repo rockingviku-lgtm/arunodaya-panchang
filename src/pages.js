@@ -216,7 +216,7 @@ const PAGES = {
 };
 
 Object.assign(PAGES, makePages(() => refresh()));
-Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox }));
+Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox, S, bindDate }));
 
 function bindDate(root) {
   root.querySelector('#pg-date')?.addEventListener('change', e => { if (e.target.value) { S.date = e.target.value; refresh(); } });
