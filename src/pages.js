@@ -8,6 +8,7 @@ import {
   grahaPositions, ascendantSidereal, chaughadiya, horas, planetaryEvents, RASHI_HI, GRAHA_ORDER
 } from './graha-engine.js';
 import { mountRashifal } from './rashifal.js';
+import { EXTRA_TITLES, makeExtraPages, mountExtraTools } from './extra-pages.js';
 import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pages.js';
 
 const TZ = 'Asia/Kolkata', STORE = 'arunodaya.place';
@@ -27,7 +28,7 @@ const RASHI_LORD = ['मंगल', 'शुक्र', 'बुध', 'चंद�
 const NAK_LORD = ['केतु', 'शुक्र', 'सूर्य', 'चंद्र', 'मंगल', 'राहु', 'गुरु', 'शनि', 'बुध'];
 const evGlyph = t => /युति/.test(t) ? '☌' : /60°/.test(t) ? '⚹' : /90°/.test(t) ? '□' : /120°/.test(t) ? '△' : /150°/.test(t) ? '⚻' : /180°/.test(t) ? '☍' : (PG[t.split(' ')[0]] || '●');
 
-const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES };
+const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES };
 const KEYS = Object.keys(TITLES);
 
 // ---------- साझा स्थिति ----------
@@ -214,6 +215,7 @@ const PAGES = {
 };
 
 Object.assign(PAGES, makePages(() => refresh()));
+Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox }));
 
 function bindDate(root) {
   root.querySelector('#pg-date')?.addEventListener('change', e => { if (e.target.value) { S.date = e.target.value; refresh(); } });
@@ -265,6 +267,7 @@ export function mountPages() {
   if (window.__pgMounted) return;
   window.__pgMounted = true;
   mountMilanTools();
+  mountExtraTools();
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-more]');
     if (!b || !PAGES[b.dataset.more]) return;
