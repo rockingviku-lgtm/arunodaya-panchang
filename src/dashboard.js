@@ -206,7 +206,9 @@ export function mountDashboard(place = DEFAULT_PLACE) {
     try { localStorage.setItem("arunodaya-theme-v2", classic ? "classic" : "modern"); } catch {}
   });
 
+  let shownIso = null, userPicked = false;
   const refresh = (iso) => {
+    shownIso = iso;
     try {
       const p = getPanchangDay(iso, place);
       sec.querySelector("#dash-date").textContent = dateHi(iso);
@@ -224,5 +226,17 @@ export function mountDashboard(place = DEFAULT_PLACE) {
     }
   };
   refresh(todayIST());
-  document.querySelector("#global-date")?.addEventListener("change", (e) => e.target.value && refresh(e.target.value));
+  document.querySelector("#global-date")?.addEventListener("change", (e) => {
+    if (!e.target.value) return;
+    userPicked = e.target.value !== todayIST(); // खुद चुनी तारीख़ को आधी रात पर नहीं बदलेंगे
+    refresh(e.target.value);
+  });
+  // आधी रात के बाद नया दिन अपने-आप: हर मिनट जाँच; खुद चुनी तारीख़ पर कुछ नहीं बदलता
+  setInterval(() => {
+    const real = todayIST();
+    if (userPicked || real === shownIso) return;
+    const gd = document.querySelector("#global-date");
+    if (gd) gd.value = real;
+    refresh(real);
+  }, 60000);
 }
