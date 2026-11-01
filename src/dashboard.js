@@ -7,6 +7,7 @@ import { chaughadiya, horas } from "./graha-engine.js";
 const TZ = "Asia/Kolkata";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const hm = (d) => new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: TZ }).format(d);
+const mdt = (d, iso) => !d ? '—' : new Date(+d + 330 * 60000).toISOString().slice(0, 10) === iso ? hm(d) : new Intl.DateTimeFormat('hi-IN', { day: 'numeric', month: 'short', timeZone: TZ }).format(d) + ', ' + hm(d);
 const pad = (n) => String(Math.floor(n)).padStart(2, "0");
 const dateHi = (iso) => new Intl.DateTimeFormat("hi-IN", { day: "numeric", month: "long", year: "numeric", weekday: "long", timeZone: TZ }).format(new Date(iso + "T12:00:00+05:30"));
 
@@ -140,7 +141,7 @@ function startLive(el, iso, place) {
       const dm = dt.dayLengthMin;
       h += `<div class="dl-h">सूर्य और चंद्र</div>`;
       h += lrow("सूर्योदय / सूर्यास्त", `${hm(dt.sunrise)} / ${hm(dt.sunset)}`);
-      h += lrow("चंद्रोदय / चंद्रास्त", `${p.moonrise ? hm(p.moonrise) : "—"} / ${p.moonset ? hm(p.moonset) : "—"}`);
+      h += lrow("चंद्रोदय / चंद्रास्त", `${mdt(p.moonrise, p.date)} / ${mdt(p.moonset, p.date)}`);
       h += lrow("दिनमान / रात्रिमान", `${Math.floor(dm / 60)} घं ${dm % 60} मि / ${Math.floor((1440 - dm) / 60)} घं ${(1440 - dm) % 60} मि`);
       if (isToday) h += `<div class="dl-bar" title="दिन कितना बीता"><i style="width:${pc.toFixed(1)}%"></i></div><small class="dl-cap">सूर्योदय से सूर्यास्त तक ${pc.toFixed(0)}% बीता</small>`;
     }

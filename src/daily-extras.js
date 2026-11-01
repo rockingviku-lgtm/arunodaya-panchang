@@ -11,6 +11,7 @@ const STORE = 'arunodaya.place';
 const NAVY = 'var(--navy, #10264a)';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clock = d => new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ }).format(d);
+const mdt = (d, iso) => !d ? '—' : new Date(+d + 330 * 60000).toISOString().slice(0, 10) === iso ? clock(d) : new Intl.DateTimeFormat('hi-IN', { day: 'numeric', month: 'short', timeZone: TZ }).format(d) + ', ' + clock(d);
 const dayOf = d => new Date(d.getTime() + 330 * 60000).toISOString().slice(0, 10);
 const MON = ['जन॰', 'फ़र॰', 'मार्च', 'अप्रै॰', 'मई', 'जून', 'जुला॰', 'अग॰', 'सित॰', 'अक्टू॰', 'नव॰', 'दिस॰'];
 const MONFULL = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
@@ -120,7 +121,7 @@ function render(container) {
     let b = dk('वार · पक्ष', `${esc(pd.weekday)} · ${esc(pd.paksha)}`) + dk('तिथि', chain(pd.tithis)) + dk('नक्षत्र', chain(pd.nakshatras)) + dk('योग', chain(pd.yogas)) + dk('करण', chain(pd.karanas))
       + dk('चंद्र राशि', chain(pd.moonRashi)) + dk('सूर्य राशि · नक्षत्र', `${esc(pd.sunRashi)} · ${esc(pd.sunNakshatra)}`)
       + dk('चांद्र मास', `अमांत ${esc(pd.amantaMonth)} · पूर्णिमांत ${esc(pd.purnimantaMonth)}`)
-      + dk('सूर्योदय / सूर्यास्त', `${clock(pd.sunrise)} / ${clock(pd.sunset)}`) + dk('चंद्रोदय / चंद्रास्त', `${pd.moonrise ? clock(pd.moonrise) : '—'} / ${pd.moonset ? clock(pd.moonset) : '—'}`)
+      + dk('सूर्योदय / सूर्यास्त', `${clock(pd.sunrise)} / ${clock(pd.sunset)}`) + dk('चंद्रोदय / चंद्रास्त', `${mdt(pd.moonrise, pd.date)} / ${mdt(pd.moonset, pd.date)}`)
       + dk('संवत', `विक्रम ${pd.vikramSamvat} · शक ${pd.shakaSamvat} · गुजराती ${pd.gujaratiSamvat}`);
     if (dt) b += dk('राहुकाल', `${clock(dt.rahu.start)} – ${clock(dt.rahu.end)}`) + dk('यमगंड', `${clock(dt.yama.start)} – ${clock(dt.yama.end)}`) + dk('गुलिक काल', `${clock(dt.gulika.start)} – ${clock(dt.gulika.end)}`) + dk('अभिजीत मुहूर्त', `${clock(dt.abhijit.start)} – ${clock(dt.abhijit.end)}`) + dk('ब्रह्म मुहूर्त', `${clock(dt.brahma.start)} – ${clock(dt.brahma.end)}`);
     cards.push(card('आज का पंचांग', b, ['panchang', 'और देखें'], esc(pd.weekday)));

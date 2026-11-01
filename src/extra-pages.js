@@ -243,7 +243,13 @@ function shubhBody(place) {
 
 // ---------- ग्रहण ----------
 const eclName = e => e.type === 'lunar' ? `चंद्र ग्रहण · ${{ total: 'पूर्ण', partial: 'आंशिक', penumbral: 'उपच्छाया' }[e.kind]}` : `सूर्य ग्रहण · ${{ total: 'पूर्ण', annular: 'कंकणाकृति (वलयाकार)', hybrid: 'संकर', partial: 'आंशिक' }[e.kind]}`;
-function eclipseBox(e, place) {
+let LAST = [];
+const mapHtml = i => `<div style="padding:10px 14px"><button type="button" data-map="${i}" style="font:inherit;font-weight:600;padding:7px 14px;cursor:pointer">दुनिया का दृश्यता नक्शा देखें</button><div class="ex-mapbox"></div></div>`;
+function eclipseBox(e, place, i) {
+  const h = eclipseBoxInner(e, place);
+  return h.replace(/<\/div>$/, mapHtml(i) + '</div>');
+}
+function eclipseBoxInner(e, place) {
   const mx = e.max, iso = istISO(mx).slice(0, 10), ml = moonSidereal(mx), sl = sunSidereal(mx), ti = tithiAt(mx - 30 * MIN).index;
   const head = `${eclName(e)} · ${fmtDay(iso)}, ${wdOf(iso)}`;
   const base = `${kv('तिथि', esc(tithiName(ti)))}${kv('चंद्र', `${RASHI_HI[Math.floor(ml / 30)]} राशि, ${esc(NAKSHATRAS[Math.floor(ml / NAK)])} नक्षत्र`)}${kv('सूर्य', `${RASHI_HI[Math.floor(sl / 30)]} राशि, ${esc(NAKSHATRAS[Math.floor(sl / NAK)])} नक्षत्र`)}`;
@@ -273,11 +279,12 @@ function grahanBody(place) {
   const now = Date.now(), key = `${GR.years}|${place.lat}|${place.lon}|${new Date().toDateString()}`;
   let list = GRAHAN_CACHE.get(key);
   if (!list) { list = findEclipses(now - 30 * DAY, now + GR.years * 365 * DAY, place); GRAHAN_CACHE.set(key, list); }
+  LAST = list;
   const next = list.find(e => e.max > now);
   return `<div class="pg-box"><h2>आने वाले ग्रहण · ${esc(place.name)}</h2>
     <p class="pg-note">${next ? `अगला ग्रहण: ${esc(eclName(next))}, ${fmtDMs(next.max)}।` : 'चुनी अवधि में कोई ग्रहण नहीं मिला।'} नीचे पिछले 30 दिन के ग्रहण भी दिखते हैं। सभी समय भारतीय समय में हैं और दृश्यता चुने स्थान के अनुसार है।</p></div>
-  ${list.map(e => eclipseBox(e, place)).join('')}
-  <div class="pg-box"><h2>नोट</h2><p class="pg-note">ग्रहण की गणना सूर्य-चंद्र की स्थिति से की गई है। समय सामान्यतः कुछ मिनट के भीतर सही रहता है, पर Drik या NASA के प्रकाशित समय से 1-3 मिनट का अंतर हो सकता है। सूतक चंद्र ग्रहण में 9 घंटे और सूर्य ग्रहण में 12 घंटे पहले से माना गया है, और केवल तब जब ग्रहण आपके स्थान से दिखे। सूर्य ग्रहण की दृश्यता का नक्शा यहाँ उपलब्ध नहीं है।</p></div>`;
+  ${list.map((e, i) => eclipseBox(e, place, i)).join('')}
+  <div class="pg-box"><h2>नोट</h2><p class="pg-note">ग्रहण की गणना सूर्य-चंद्र की स्थिति से की गई है। समय सामान्यतः कुछ मिनट के भीतर सही रहता है, पर Drik या NASA के प्रकाशित समय से 1-3 मिनट का अंतर हो सकता है। सूतक चंद्र ग्रहण में 9 घंटे और सूर्य ग्रहण में 12 घंटे पहले से माना गया है, और केवल तब जब ग्रहण आपके स्थान से दिखे। दृश्यता केवल चुने हुए स्थान के लिए बताई गई है, पूरी दुनिया का नक्शा उपलब्ध नहीं है।</p></div>`;
 }
 
 // ---------- पंचक और भद्रा ----------
@@ -331,11 +338,11 @@ function riseBody(place) {
     const pd = getPanchangDay(iso, place), dt = getDayTimes(iso, place);
     return { iso, pd, dt };
   });
-  const t = d => d ? clock(+d) : '—';
+  const t = (d, iso) => !d ? '—' : istISO(+d).slice(0, 10) === iso ? clock(+d) : `${+istISO(+d).slice(8, 10)} ${MON[+istISO(+d).slice(5, 7) - 1]}, ${clock(+d)}`;
   return `<div class="pg-box"><h2>${MONFULL[+RT.month.slice(5) - 1]} ${RT.month.slice(0, 4)} · ${esc(place.name)}</h2><div class="pg-wrap"><table class="pg-tbl">
     <tr><th>तारीख़</th><th>वार</th><th>सूर्योदय</th><th>सूर्यास्त</th><th>दिनमान</th><th>चंद्रोदय</th><th>चंद्रास्त</th><th>तिथि (सूर्योदय पर)</th></tr>
-    ${rows.map(({ iso, pd, dt }) => `<tr${iso === today ? ' class="mp-on"' : ''}><td>${+iso.slice(8)} ${MON[+iso.slice(5, 7) - 1]}</td><td>${wdOf(iso)}</td><td>${t(dt?.sunrise)}</td><td>${t(dt?.sunset)}</td><td>${dt ? dur(dt.dayLengthMin * MIN) : '—'}</td><td>${t(pd.moonrise)}</td><td>${t(pd.moonset)}</td><td>${esc(pd.tithis[0]?.label || '')}</td></tr>`).join('')}</table></div>
-    <p class="pg-note">'—' का अर्थ है कि उस भारतीय तारीख़ में चंद्रमा का उदय या अस्त नहीं हुआ (वह अगले दिन होता है)। सभी समय भारतीय समय में, चुने स्थान के अनुसार हैं। सूर्योदय-सूर्यास्त उदय के ऊपरी किनारे और वायुमंडलीय अपवर्तन के साथ गिने गए हैं।</p></div>`;
+    ${rows.map(({ iso, pd, dt }) => `<tr${iso === today ? ' class="mp-on"' : ''}><td>${+iso.slice(8)} ${MON[+iso.slice(5, 7) - 1]}</td><td>${wdOf(iso)}</td><td>${t(dt?.sunrise, iso)}</td><td>${t(dt?.sunset, iso)}</td><td>${dt ? dur(dt.dayLengthMin * MIN) : '—'}</td><td>${t(pd.moonrise, iso)}</td><td>${t(pd.moonset, iso)}</td><td>${esc(pd.tithis[0]?.label || '')}</td></tr>`).join('')}</table></div>
+    <p class="pg-note">जिस दिन चंद्रमा का उदय या अस्त उसी तारीख़ में नहीं पड़ता (चंद्रोदय हर दिन लगभग 50 मिनट देर से होता है, इसलिए कभी-कभी एक दिन छूट जाता है), वहाँ अगले दिन का समय तारीख़ के साथ दिखाया गया है। सभी समय भारतीय समय में, चुने स्थान के अनुसार हैं। सूर्योदय-सूर्यास्त उदय के ऊपरी किनारे और वायुमंडलीय अपवर्तन के साथ गिने गए हैं।</p></div>`;
 }
 
 // ---------- फ्रेम: टूलबार, बाइंडिंग, पेज ----------
@@ -345,6 +352,19 @@ const monthTool = (k, S) => `<button type="button" data-mv="${k}:-1">‹ पि�
 export function makeExtraPages({ refresh, getPlace, placeBox }) {
   const bind = root => {
     root.querySelectorAll('[data-b][data-f]').forEach(el => el.addEventListener('change', () => { B[el.dataset.b][el.dataset.f] = el.value; refresh(); }));
+    root.querySelectorAll('[data-map]').forEach(b => b.addEventListener('click', async () => {
+      const e = LAST[+b.dataset.map], box = b.nextElementSibling;
+      if (!e || !box) return;
+      b.disabled = true; b.textContent = 'नक्शा बन रहा है...';
+      try {
+        const { drawEclipseMap, legendFor } = await import('./eclipse-map.js');
+        box.innerHTML = '<canvas width="1440" height="720" style="width:100%;height:auto;display:block;margin-top:10px;border:1px solid var(--pborder,#5c5f63)"></canvas><div class="ex-leg" style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:13px"></div><p class="pg-note" style="padding:6px 0 0"></p>';
+        const r = await drawEclipseMap(box.querySelector('canvas'), e, getPlace());
+        box.querySelector('.ex-leg').innerHTML = legendFor(e).map(([c, t]) => `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:12px;background:${c};border:1px solid rgba(0,0,0,.35);display:inline-block"></i>${esc(t)}</span>`).join('') + '<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;background:#c0141c;display:inline-block"></i>आपका स्थान</span>';
+        box.querySelector('.pg-note').textContent = r.hasLand ? 'नक्शे में रंग पूरे ग्रहण के दौरान की स्थिति दिखाते हैं। खाने 4 अंश के हैं, इसलिए सीमाओं पर थोड़ा अंतर हो सकता है।' : 'तट-रेखाएँ लोड नहीं हो सकीं (इंटरनेट या CDN की समस्या), इसलिए केवल अक्षांश-देशांतर रेखाओं पर नक्शा दिखाया गया है।';
+        b.remove();
+      } catch (err) { console.error(err); b.disabled = false; b.textContent = 'नक्शा नहीं बन सका, फिर कोशिश करें'; }
+    }));
     root.querySelector('#ex-rashi')?.addEventListener('change', e => { B.rashi = +e.target.value; refresh(); });
     root.querySelectorAll('[data-s][data-f]').forEach(el => el.addEventListener('change', () => { const v = el.value; if (v) { STATE[el.dataset.s][el.dataset.f] = el.dataset.f === 'years' ? +v : v; refresh(); } }));
     root.querySelectorAll('[data-mv]').forEach(b => b.addEventListener('click', () => {

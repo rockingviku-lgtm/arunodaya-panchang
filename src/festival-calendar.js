@@ -873,6 +873,11 @@ export function getPanchangDay(dateISO, place = DEFAULT_PLACE) {
   const sv = sunSidereal(start);
 
   const mr = dayRises(dateISO, place, istMidnight(dateISO), istMidnight(dateISO) + DAY);
+  if (mr.rise == null || mr.set == null) { // उस दिन न पड़े तो अगले दिन का समय (Drik जैसा, तारीख़ के साथ दिखाया जाएगा)
+    const nx = dayRises(dateISO, place, istMidnight(dateISO) + DAY, istMidnight(dateISO) + 2 * DAY);
+    if (mr.rise == null) mr.rise = nx.rise;
+    if (mr.set == null) mr.set = nx.set;
+  }
   const lm = lunarMonth(start);
   const shukla = base.tithiIndex <= 15;
   const gujarati = (lm.month > 8 || (lm.month === 8 && shukla)) ? base.vikramSamvat : base.vikramSamvat - 1;

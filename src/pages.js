@@ -14,6 +14,7 @@ import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pag
 const TZ = 'Asia/Kolkata', STORE = 'arunodaya.place';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clock = d => new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ }).format(d).toUpperCase();
+const mdt = (d, iso) => !d ? '—' : new Date(+d + 330 * 60000).toISOString().slice(0, 10) === iso ? clock(d) : new Intl.DateTimeFormat('hi-IN', { day: 'numeric', month: 'short', timeZone: TZ }).format(d) + ', ' + clock(d);
 const istISO = ms => new Date(ms + 330 * 60000).toISOString();
 const MON = ['जन॰', 'फ़र॰', 'मार्च', 'अप्रै॰', 'मई', 'जून', 'जुला॰', 'अग॰', 'सित॰', 'अक्टू॰', 'नव॰', 'दिस॰'];
 const MONFULL = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
@@ -133,7 +134,7 @@ const PAGES = {
       const pd = getPanchangDay(S.date, place), dt = getDayTimes(S.date, place);
       const day0 = S.date;
       let a = kv('स्थान', esc(place.name)) + kv('वार', esc(pd.weekday)) + kv('पक्ष', esc(pd.paksha)) + kv('सूर्योदय', clock(pd.sunrise)) + kv('सूर्यास्त', clock(pd.sunset))
-        + kv('चंद्रोदय', pd.moonrise ? clock(pd.moonrise) : '—') + kv('चंद्रास्त', pd.moonset ? clock(pd.moonset) : '—')
+        + kv('चंद्रोदय', mdt(pd.moonrise, S.date)) + kv('चंद्रास्त', mdt(pd.moonset, S.date))
         + kv('तिथि', seg(pd.tithis, day0)) + kv('नक्षत्र', seg(pd.nakshatras, day0)) + kv('योग', seg(pd.yogas, day0)) + kv('करण', seg(pd.karanas, day0))
         + kv('चंद्र राशि', seg(pd.moonRashi, day0)) + kv('सूर्य राशि', esc(pd.sunRashi)) + kv('सूर्य नक्षत्र', esc(pd.sunNakshatra))
         + kv('अमांत मास', esc(pd.amantaMonth)) + kv('पूर्णिमांत मास', esc(pd.purnimantaMonth))
