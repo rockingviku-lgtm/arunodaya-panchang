@@ -111,3 +111,6 @@ body.dash-classic .dl-good{color:#14602c}body.dash-classic .dl-bad{color:#9f1a00
 .dl-bar{height:6px;background:var(--line);margin:10px 14px 2px}.dl-bar i{display:block;height:100%;background:var(--dacc)}
 .dl-cap{display:block;padding:0 14px 10px;color:var(--muted)}
 @media(min-width:900px){body.dash-on .tool-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* मोबाइल: चार्ट बॉक्स के भीतर ही फ़िट हो, बग़ल में बाहर न जाए */
+@media(max-width:700px){body.dash-on .dash-chart .dash-axis,body.dash-on .dash-chart .dash-row,body.dash-on .dash-chart .dash-sun,body.dash-on .dash-chart .dash-sunmoon{min-width:0!important}body.dash-on .dash-seg{font-size:.66rem}body.dash-on .dash-hx{display:none}}
+.dash-chart .dash-sun-cap{display:none}

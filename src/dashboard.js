@@ -27,12 +27,25 @@ function buildRow(title, segs, start, end) {
   return `<div class="dash-row"><span>${title}</span><div class="dash-bar">${cells}</div></div>`;
 }
 
+// सूर्योदय/सूर्यास्त (अर्धवृत्त) और चंद्रोदय/चंद्रास्त (गोला) के चिह्न — timeline पेज जैसे
+function sunMoonLine(p) {
+  const total = p.end - p.start;
+  const at = d => (((d - p.start) / total) * 100).toFixed(2);
+  const tr = d => { const q = (d - p.start) / total * 100; return q < 4 ? "0" : q > 96 ? "-100%" : "-50%"; };
+  const ok = d => d && d >= p.start && d <= p.end;
+  const sun = (d, lab) => ok(d) ? `<span style="position:absolute;left:${at(d)}%;top:0;transform:translateX(${tr(d)});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:24px;height:12px;margin:0 auto;border-radius:24px 24px 0 0;background:#f3a21b;border:1px solid #a35f00"></i>${esc(lab)} ${hm(d)}</span>` : "";
+  const moon = (d, lab) => ok(d) ? `<span style="position:absolute;left:${at(d)}%;top:0;transform:translateX(${tr(d)});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:12px;height:12px;margin:0 auto;border-radius:50%;background:#9aa1ab;border:1px solid #fff"></i>${esc(lab)} ${hm(d)}</span>` : "";
+  const rowHtml = inner => `<div class="dash-sunmoon" style="display:flex;gap:6px;margin:0;min-width:640px"><i style="width:56px;flex:none"></i><div style="position:relative;flex:1;height:22px">${inner}</div></div>`;
+  return rowHtml(sun(p.sunrise, "सूर्योदय") + sun(p.sunset, "सूर्यास्त")) + rowHtml(moon(p.moonrise, "चंद्रोदय") + moon(p.moonset, "चंद्रास्त"));
+}
+
 function renderChart(el, p) {
   const hours = [];
   const total = (p.end - p.start) / 3600000;
-  for (let h = 0; h <= 24; h += 4) hours.push(`<span style="left:${((h / total) * 100).toFixed(1)}%">${hm(new Date(p.start.getTime() + h * 3600000))}</span>`);
+  for (let h = 0; h <= 24; h += 4) { const pct = (h / total) * 100; const tr = h === 0 ? "0" : pct >= 99 ? "-100%" : "-50%"; hours.push(`<span class="${h % 8 ? "dash-hx" : ""}" style="left:${pct.toFixed(1)}%;transform:translateX(${tr});white-space:nowrap">${hm(new Date(p.start.getTime() + h * 3600000))}</span>`); }
   el.innerHTML = `
     <div class="dash-axis"><i></i><div>${hours.join("")}</div></div>
+    ${sunMoonLine(p)}
     ${buildRow("तिथि", p.tithis, p.start, p.end)}
     ${buildRow("नक्षत्र", p.nakshatras, p.start, p.end)}
     ${buildRow("योग", p.yogas, p.start, p.end)}
