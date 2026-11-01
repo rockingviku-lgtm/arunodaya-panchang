@@ -1,4 +1,4 @@
-// Site ke apne engines (src/ folder) se har seva ka data. Koi nayi library nahi.
+// Site ke apne engines (src/ folder) se har seva ka data. Koi nayi library nahi. 
 import { getPanchangDay, getDayTimes, getFestivalsForDate, getUpcomingFestivals, moonSidereal, NAKSHATRAS } from "../src/festival-calendar.js";
 import { chaughadiya, horas, ascendantSidereal, planetaryEvents, grahaPositions, planetSign, RASHI_HI } from "../src/graha-engine.js";
 import { rashifal } from "../src/rashifal.js";
