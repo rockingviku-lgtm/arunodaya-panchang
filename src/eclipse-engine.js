@@ -162,4 +162,70 @@ export function findEclipses(fromMs, toMs, place) {
   return out.sort((a, b) => a.max - b.max);
 }
 
-export { sizes as _sizes };
+
+// ---------- दृश्यता का नक्शा ----------
+// ग्रिड (हर `step` अंश का एक खाना): चंद्र ग्रहण में 0 नहीं/1 आंशिक/2 पूरा; सूर्य ग्रहण में ग्रहण-कोटि (0 = नहीं दिखेगा)
+export function visibilityGrid(e, step = 4) {
+  const lats = [], lons = [];
+  for (let la = -90 + step / 2; la < 90; la += step) lats.push(la);
+  for (let lo = -180 + step / 2; lo < 180; lo += step) lons.push(lo);
+  const rows = lats.map(() => new Float32Array(lons.length));
+  const altOf = (lat, lon, ra, dec, gm) => Math.asin(sind(lat) * sind(dec) + cosd(lat) * cosd(dec) * cosd(norm(gm + lon - ra))) / RAD;
+  if (e.type === 'lunar') {
+    const ts = Object.values(e.pts).filter(x => x != null);
+    const eqs = ts.map(t => ({ ...eqFromEcl(moonTropLon(t), moonLatitudeAt(t), centuries(t)), gm: gmst(t) }));
+    lats.forEach((la, i) => lons.forEach((lo, j) => {
+      let up = 0;
+      for (const q of eqs) if (altOf(la, lo, q.ra, q.dec, q.gm) > -0.6) up++;
+      rows[i][j] = up === 0 ? 0 : up === eqs.length ? 2 : 1;
+    }));
+  } else {
+    const samples = [];
+    for (let t = e.max - 3 * HOUR; t <= e.max + 3 * HOUR; t += 15 * MIN) {
+      const T = centuries(t), z = sizes(t);
+      const m = eqFromEcl(moonTropLon(t), moonLatitudeAt(t), T), sn = eqFromEcl(sunTropLon(t), 0, T);
+      samples.push({ m, sn, gm: gmst(t), sinPi: Math.sin(z.piM * RAD), sM: z.sM, sS: z.sS });
+    }
+    lats.forEach((la, i) => {
+      const u = Math.atan(0.99664719 * Math.tan(la * RAD)), rs = 0.99664719 * Math.sin(u), rc = Math.cos(u);
+      lons.forEach((lo, j) => {
+        let best = 0;
+        for (const q of samples) {
+          if (altOf(la, lo, q.sn.ra, q.sn.dec, q.gm) < -0.8) continue;
+          const H = norm(q.gm + lo - q.m.ra) * RAD, dec = q.m.dec * RAD;
+          const dRa = Math.atan2(-rc * q.sinPi * Math.sin(H), Math.cos(dec) - rc * q.sinPi * Math.cos(H));
+          const decT = Math.atan2((Math.sin(dec) - rs * q.sinPi) * Math.cos(dRa), Math.cos(dec) - rc * q.sinPi * Math.cos(H));
+          const raT = q.m.ra * RAD + dRa;
+          const c = Math.sin(decT) * sind(q.sn.dec) + Math.cos(decT) * cosd(q.sn.dec) * Math.cos(raT - q.sn.ra * RAD);
+          const sep = Math.acos(Math.min(1, Math.max(-1, c))) / RAD;
+          const mag = (q.sM + q.sS - sep) / (2 * q.sS);
+          if (mag > best) best = Math.min(mag, q.sM / q.sS);
+        }
+        rows[i][j] = best;
+      });
+    });
+  }
+  return { lats, lons, rows, step };
+}
+
+// पूर्ण/कंकणाकृति सूर्य ग्रहण की केंद्रीय रेखा: [[lat, lon], ...] के खंड
+export function centralPath(e) {
+  if (e.type !== 'solar' || !['total', 'annular', 'hybrid'].includes(e.kind)) return [];
+  const segs = [];
+  let cur = [];
+  for (let t = e.max - 3.5 * HOUR; t <= e.max + 3.5 * HOUR; t += 4 * MIN) {
+    const T = centuries(t), dm = moonDistance(t);
+    const m = eqFromEcl(moonTropLon(t), moonLatitudeAt(t), T), sn = eqFromEcl(sunTropLon(t), 0, T);
+    const M = [dm * cosd(m.dec) * cosd(m.ra), dm * cosd(m.dec) * sind(m.ra), dm * sind(m.dec)];
+    const d = [-cosd(sn.dec) * cosd(sn.ra), -cosd(sn.dec) * sind(sn.ra), -sind(sn.dec)];
+    const md = M[0] * d[0] + M[1] * d[1] + M[2] * d[2], mm = M[0] ** 2 + M[1] ** 2 + M[2] ** 2;
+    const disc = md * md - mm + R_EARTH * R_EARTH;
+    if (disc < 0) { if (cur.length) segs.push(cur); cur = []; continue; }
+    const lam = -md - Math.sqrt(disc), P = [M[0] + lam * d[0], M[1] + lam * d[1], M[2] + lam * d[2]];
+    const lat = Math.asin(P[2] / R_EARTH) / RAD, lon = wrap180(Math.atan2(P[1], P[0]) / RAD - gmst(t));
+    if (cur.length && Math.abs(lon - cur[cur.length - 1][1]) > 180) { segs.push(cur); cur = []; }
+    cur.push([lat, lon]);
+  }
+  if (cur.length) segs.push(cur);
+  return segs;
+}
