@@ -10,7 +10,7 @@ import { calculateVimshottariDasha } from "../../src/dasha-engine.js";
 import { nameNumbers, personal, reduce } from "../../src/numerology.js";
 import { babyName, vedicTime, shraddhaTithi, sahasraChandra } from "../../src/jyotish-calc.js";
 
-const TZ = "Asia/Kolkata";
+const TZ = "Asia/Kolkata"; 
 const MIN = 60000, DAY = 86400000;
 const clock = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: TZ });
 const full = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: TZ });
