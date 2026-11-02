@@ -114,3 +114,7 @@ body.dash-classic .dl-good{color:#14602c}body.dash-classic .dl-bad{color:#9f1a00
 /* मोबाइल: चार्ट बॉक्स के भीतर ही फ़िट हो, बग़ल में बाहर न जाए */
 @media(max-width:700px){body.dash-on .dash-chart .dash-axis,body.dash-on .dash-chart .dash-row,body.dash-on .dash-chart .dash-sun,body.dash-on .dash-chart .dash-sunmoon{min-width:0!important}body.dash-on .dash-seg{font-size:.66rem}body.dash-on .dash-hx{display:none}}
 .dash-chart .dash-sun-cap{display:none}
+
+/* हेडर का ब्रांड-लोगो (दाईं ओर) */
+.topbar .site-logo{display:block;height:46px;width:auto;margin-left:auto;flex:0 0 auto}
+@media(max-width:700px){.topbar .site-logo{height:38px}}

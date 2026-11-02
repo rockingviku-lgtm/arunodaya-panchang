@@ -168,8 +168,18 @@ function startLive(el, iso, place) {
   liveTimer = setInterval(tick, 1000);
 }
 
+// हेडर के दाईं ओर ब्रांड-लोगो (public/logo.svg); पहले से हो तो दोबारा नहीं
+function addLogo() {
+  const bar = document.querySelector(".topbar");
+  if (!bar || bar.querySelector(".site-logo")) return;
+  const img = document.createElement("img");
+  img.className = "site-logo"; img.src = "/logo.svg"; img.alt = "अरुणोदय पंचांग लोगो"; img.decoding = "async";
+  bar.appendChild(img);
+}
+
 export function mountDashboard(place = DEFAULT_PLACE) {
   mountPages(); // "और देखें" बटन के पूरे पेज
+  addLogo();
   const anchor = document.querySelector(".date-strip");
   if (!anchor || document.querySelector("#dash-top")) return;
 
