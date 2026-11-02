@@ -116,5 +116,6 @@ body.dash-classic .dl-good{color:#14602c}body.dash-classic .dl-bad{color:#9f1a00
 .dash-chart .dash-sun-cap{display:none}
 
 /* हेडर का ब्रांड-लोगो (दाईं ओर) */
+body.dash-on .topbar .today-btn{display:none}
 .topbar .site-logo{display:block;height:46px;width:auto;margin-left:auto;flex:0 0 auto}
 @media(max-width:700px){.topbar .site-logo{height:38px}}
