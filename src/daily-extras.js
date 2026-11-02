@@ -94,6 +94,16 @@ function dayData(today) {
   memo.key = key; memo.data = d;
   return d;
 }
+// IST कैलेंडर-दिन के आधार पर: आज / कल / परसों / N दिन बाद (दिन का समय नहीं, तारीख़ गिनी जाती है)
+function relDayLabel(evMs, nowMs) {
+  const dayOf = x => Math.floor((x + 5.5 * 3600000) / 86400000);
+  const n = dayOf(evMs) - dayOf(nowMs);
+  if (n === 0) return 'आज';
+  if (n === 1) return 'कल';
+  if (n === 2) return 'परसों';
+  if (n < 0) return Math.abs(n) + ' दिन पहले';
+  return n + ' दिन बाद';
+}
 let evMemo = { hour: -1, list: null }, evBusy = -1, evContainer = null;
 // Swiss Ephemeris से (पेज वाली सूची जैसी); तैयार होने तक null (लोडिंग संदेश), फिर widget दोबारा बनता है
 function eventsNow(ms) {
@@ -145,7 +155,7 @@ function render(container) {
   // आने वाली ग्रह-घटनाएँ (चिह्नों के साथ)
   {
     const ev = eventsNow(ms);
-    const body = ev === null ? '<p class="dx-pad">ग्रह-घटनाएँ गणना हो रही हैं…</p>' : ev.length ? `<div class="dx-fill">${ev.map(e => { const first = e.text.split(' ')[0].split('-')[0]; return `<div class="dx-ev"><i style="color:${PC[first] && !/°|युति/.test(e.text) ? PC[first] : 'inherit'}">${evGlyph(e.text)}</i><div style="min-width:0"><b>${esc(e.text)}</b><small>${esc(shortDate(new Date(e.ms)))} · ${Math.max(0, Math.floor((e.ms - ms) / 86400000)) === 0 ? 'आज' : Math.floor((e.ms - ms) / 86400000) + ' दिन बाद'}</small></div></div>`; }).join('')}</div>` : '<p class="dx-pad">अगले 60 दिनों में कोई प्रमुख ग्रह-घटना नहीं।</p>';
+    const body = ev === null ? '<p class="dx-pad">ग्रह-घटनाएँ गणना हो रही हैं…</p>' : ev.length ? `<div class="dx-fill">${ev.map(e => { const first = e.text.split(' ')[0].split('-')[0]; return `<div class="dx-ev"><i style="color:${PC[first] && !/°|युति/.test(e.text) ? PC[first] : 'inherit'}">${evGlyph(e.text)}</i><div style="min-width:0"><b>${esc(e.text)}</b><small>${esc(shortDate(new Date(e.ms)))} · ${relDayLabel(e.ms, ms)}</small></div></div>`; }).join('')}</div>` : '<p class="dx-pad">अगले 60 दिनों में कोई प्रमुख ग्रह-घटना नहीं।</p>';
     cards.push(card('आने वाली ग्रह-घटनाएँ', body, ['events', 'और देखें'], 'राशि · नक्षत्र · वक्री · कोण'));
   }
 
