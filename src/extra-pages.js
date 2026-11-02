@@ -27,7 +27,7 @@ const istMidnight = iso => { const [y, m, d] = iso.split('-').map(Number); retur
 
 export const EXTRA_TITLES = {
   mangal: 'मंगल दोष', kaalsarp: 'काल सर्प दोष', sadesati: 'साढ़ेसाती और ढैया', shubh: 'शुभ कार्य मुहूर्त',
-  grahan: 'सूर्य-चंद्र ग्रहण', panchak: 'पंचक और भद्रा', chandrodaya: 'सूर्योदय-चंद्रोदय तालिका', timeline: 'पंचांग टाइमलाइन'
+  grahan: 'सूर्य-चंद्र ग्रहण', panchak: 'पंचक और भद्रा', chandrodaya: 'सूर्योदय-चंद्रोदय तालिका'
 };
 const TOOL_INFO = {
   mangal: ['मंगल दोष', 'मांगलिक जाँच और वर-वधू तुलना'],
@@ -36,8 +36,7 @@ const TOOL_INFO = {
   shubh: ['शुभ कार्य मुहूर्त', 'विवाह, गृह प्रवेश, वाहन, नामकरण'],
   grahan: ['सूर्य-चंद्र ग्रहण', 'तारीख़, समय, सूतक और दृश्यता'],
   panchak: ['पंचक और भद्रा', 'महीने भर के समय'],
-  chandrodaya: ['सूर्योदय-चंद्रोदय', 'महीने की पूरी तालिका'],
-  timeline: ['पंचांग टाइमलाइन', 'पूरे दिन की तिथि, नक्षत्र, योग, करण एक रेखा पर']
+  chandrodaya: ['सूर्योदय-चंद्रोदय', 'महीने की पूरी तालिका']
 };
 const SIGN_OF = (p, g) => p[g].sign;
 
@@ -467,10 +466,6 @@ export function makeExtraPages({ refresh, getPlace, placeBox, S, bindDate }) {
       body: () => grahanBody(getPlace()), bind
     },
     panchak: { tool: () => monthTool('pk', PK), body: () => panchakBody(), bind },
-    timeline: {
-      tool: () => `${placeBox()}<button type="button" data-d="-1">‹ पिछला दिन</button><input type="date" id="pg-date" value="${S.date}"><button type="button" data-d="0">आज</button><button type="button" data-d="1">अगला दिन ›</button>`,
-      body: () => timelineBody(getPlace(), S.date), bind: bindDate
-    },
     chandrodaya: { tool: () => `${placeBox()}${monthTool('rt', RT)}`, body: () => riseBody(getPlace()), bind }
   };
 }
