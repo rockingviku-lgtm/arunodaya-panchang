@@ -8,6 +8,7 @@ import {
   grahaPositions, ascendantSidereal, chaughadiya, horas, planetaryEvents, RASHI_HI, GRAHA_ORDER
 } from './graha-engine.js';
 import { mountRashifal } from './rashifal.js';
+import { swissPlanetaryEvents } from './swe-events.js';
 import { EXTRA_TITLES, makeExtraPages, mountExtraTools } from './extra-pages.js';
 import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pages.js';
 
@@ -28,6 +29,20 @@ const RG = '♈♉♊♋♌♍♎♏♐♑♒♓';
 const RASHI_LORD = ['मंगल', 'शुक्र', 'बुध', 'चंद्र', 'सूर्य', 'बुध', 'शुक्र', 'मंगल', 'गुरु', 'शनि', 'शनि', 'गुरु'];
 const NAK_LORD = ['केतु', 'शुक्र', 'सूर्य', 'चंद्र', 'मंगल', 'राहु', 'गुरु', 'शनि', 'बुध'];
 const evGlyph = t => /युति/.test(t) ? '☌' : /60°/.test(t) ? '⚹' : /90°/.test(t) ? '□' : /120°/.test(t) ? '△' : /150°/.test(t) ? '⚻' : /180°/.test(t) ? '☍' : (PG[t.split(' ')[0]] || '●');
+
+// ग्रह-घटनाएँ: पहले Swiss Ephemeris से (सटीक), विफल हो तो पुराना गणना-तरीका। पूरा होते ही पेज दोबारा बनता है।
+const EVC = new Map(), EVP = new Set();
+function eventsList(from, days) {
+  const key = `${from}|${days}`;
+  if (EVC.has(key)) return EVC.get(key);
+  if (!EVP.has(key)) {
+    EVP.add(key);
+    swissPlanetaryEvents(from, days, 800)
+      .then(l => EVC.set(key, l), () => EVC.set(key, planetaryEvents(from, days, 800)))
+      .finally(() => refresh());
+  }
+  return null;
+}
 
 const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES };
 const KEYS = Object.keys(TITLES);
@@ -112,7 +127,9 @@ const PAGES = {
     body: () => {
       const [y, m] = S.month.split('-').map(Number), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
       const from = Date.parse(`${S.month}-01T00:00:00+05:30`), to = from + days * 86400000;
-      const ev = planetaryEvents(from, days, 800).filter(e => e.ms < to);
+      const all = eventsList(from, days);
+      if (!all) return `<div class="pg-box"><h2>${MONFULL[m - 1]} ${y} की ग्रह-घटनाएँ · ${esc(place.name)}</h2><p class="pg-note">Swiss Ephemeris से गणना हो रही है…</p></div>`;
+      const ev = all.filter(e => e.ms < to);
       return `<div class="pg-box"><h2>${MONFULL[m - 1]} ${y} की ग्रह-घटनाएँ · ${esc(place.name)}</h2><div class="pg-cols">${ev.length ? ev.map(e => `<div class="pg-ev"><i style="color:${/°|युति/.test(e.text) ? 'inherit' : (PC[e.text.split(' ')[0]] || 'inherit')}">${evGlyph(e.text)}</i><div><b>${esc(e.text)}</b><small>${esc(fmtDT(e.ms))}</small></div></div>`).join('') : '<p class="pg-note">इस महीने कोई प्रमुख ग्रह-घटना नहीं।</p>'}</div>
         <p class="pg-note">घटनाओं में राशि-परिवर्तन, नक्षत्र-प्रवेश, वक्री/मार्गी, क्रांतिवृत्त पारगमन, युति और ग्रहों के आपसी कोण (60°, 90°, 120°, 150°, 180°) शामिल हैं। समय IST में, निरयण (लाहिरी)।</p></div>`;
     },

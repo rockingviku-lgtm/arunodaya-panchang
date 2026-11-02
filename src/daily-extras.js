@@ -2,6 +2,7 @@
 // राशिफल, चौघड़िया, होरा, आने वाली ग्रह-घटनाएँ)। हर दिन अपने-आप; स्थान डिफ़ॉल्ट Lucknow, GPS मिलते ही बदल जाता है।
 // हर कार्ड के नीचे "और देखें →" (data-page) आपके मौजूदा main.js के पेज/सेक्शन खोलता है। नई CSS फ़ाइल की ज़रूरत नहीं।
 import { DEFAULT_PLACE, todayIST, shiftDate, getPanchangDay, getDayTimes, getFestivalsForDate, getUpcomingFestivals, WEEKDAYS_HI } from './festival-calendar.js';
+import { swissPlanetaryEvents } from './swe-events.js';
 import { grahaPositions, ascendantSidereal, moonPhase, chaughadiya, horas, planetaryEvents, RASHI_HI, GRAHA_ORDER } from './graha-engine.js';
 import { rashifal } from './rashifal.js';
 
@@ -93,10 +94,16 @@ function dayData(today) {
   memo.key = key; memo.data = d;
   return d;
 }
-let evMemo = { hour: -1, list: [] };
+let evMemo = { hour: -1, list: [] }, evBusy = -1;
+// Swiss Ephemeris से (पेज वाली सूची जैसी); तैयार होने तक पुराना तरीका, और अगले टिक पर नई सूची
 function eventsNow(ms) {
   const hour = Math.floor(ms / 3600000);
-  if (evMemo.hour !== hour) { try { evMemo = { hour, list: planetaryEvents(ms, 60, 8) }; } catch (e) { console.error(e); evMemo = { hour, list: [] }; } }
+  if (evMemo.hour !== hour && evBusy !== hour) {
+    evBusy = hour;
+    swissPlanetaryEvents(ms, 60, 8)
+      .then(list => { evMemo = { hour, list }; })
+      .catch(() => { try { evMemo = { hour, list: planetaryEvents(ms, 60, 8) }; } catch (e) { console.error(e); evMemo = { hour, list: [] }; } });
+  }
   return evMemo.list;
 }
 
