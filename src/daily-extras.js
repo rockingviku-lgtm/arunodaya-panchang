@@ -94,15 +94,19 @@ function dayData(today) {
   memo.key = key; memo.data = d;
   return d;
 }
-let evMemo = { hour: -1, list: [] }, evBusy = -1;
-// Swiss Ephemeris से (पेज वाली सूची जैसी); तैयार होने तक पुराना तरीका, और अगले टिक पर नई सूची
+let evMemo = { hour: -1, list: null }, evBusy = -1, evContainer = null;
+// Swiss Ephemeris से (पेज वाली सूची जैसी); तैयार होने तक null (लोडिंग संदेश), फिर widget दोबारा बनता है
 function eventsNow(ms) {
   const hour = Math.floor(ms / 3600000);
   if (evMemo.hour !== hour && evBusy !== hour) {
     evBusy = hour;
+    const done = list => {
+      evMemo = { hour, list };
+      if (evContainer) { try { render(evContainer); } catch (e) { console.error(e); } }
+    };
     swissPlanetaryEvents(ms, 60, 8)
-      .then(list => { evMemo = { hour, list }; })
-      .catch(() => { try { evMemo = { hour, list: planetaryEvents(ms, 60, 8) }; } catch (e) { console.error(e); evMemo = { hour, list: [] }; } });
+      .then(done)
+      .catch(() => { try { done(planetaryEvents(ms, 60, 8)); } catch (e) { console.error(e); done([]); } });
   }
   return evMemo.list;
 }
@@ -141,7 +145,7 @@ function render(container) {
   // आने वाली ग्रह-घटनाएँ (चिह्नों के साथ)
   {
     const ev = eventsNow(ms);
-    const body = ev.length ? `<div class="dx-fill">${ev.map(e => { const first = e.text.split(' ')[0].split('-')[0]; return `<div class="dx-ev"><i style="color:${PC[first] && !/°|युति/.test(e.text) ? PC[first] : 'inherit'}">${evGlyph(e.text)}</i><div style="min-width:0"><b>${esc(e.text)}</b><small>${esc(shortDate(new Date(e.ms)))} · ${Math.max(0, Math.floor((e.ms - ms) / 86400000)) === 0 ? 'आज' : Math.floor((e.ms - ms) / 86400000) + ' दिन बाद'}</small></div></div>`; }).join('')}</div>` : '<p class="dx-pad">अगले 60 दिनों में कोई प्रमुख ग्रह-घटना नहीं।</p>';
+    const body = ev === null ? '<p class="dx-pad">ग्रह-घटनाएँ गणना हो रही हैं…</p>' : ev.length ? `<div class="dx-fill">${ev.map(e => { const first = e.text.split(' ')[0].split('-')[0]; return `<div class="dx-ev"><i style="color:${PC[first] && !/°|युति/.test(e.text) ? PC[first] : 'inherit'}">${evGlyph(e.text)}</i><div style="min-width:0"><b>${esc(e.text)}</b><small>${esc(shortDate(new Date(e.ms)))} · ${Math.max(0, Math.floor((e.ms - ms) / 86400000)) === 0 ? 'आज' : Math.floor((e.ms - ms) / 86400000) + ' दिन बाद'}</small></div></div>`; }).join('')}</div>` : '<p class="dx-pad">अगले 60 दिनों में कोई प्रमुख ग्रह-घटना नहीं।</p>';
     cards.push(card('आने वाली ग्रह-घटनाएँ', body, ['events', 'और देखें'], 'राशि · नक्षत्र · वक्री · कोण'));
   }
 
@@ -183,6 +187,7 @@ export function mountDailyExtras(container) {
   mountPages(); // "और देखें" बटन के पूरे पेज
   if (!container || container.dataset.extrasMounted === '1') return; // main.js में दो बार बुलाने पर दोहराव नहीं
   container.dataset.extrasMounted = '1';
+  evContainer = container;
   try { render(container); } catch (e) { console.error('Daily extras failed:', e); container.innerHTML = '<p>कुंडली और ग्रह स्थिति लोड नहीं हो सकी।</p>'; return; }
   if (navigator.permissions && navigator.permissions.query) {
     navigator.permissions.query({ name: 'geolocation' }).then(st => {

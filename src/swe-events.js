@@ -29,13 +29,18 @@ export async function swissPlanetaryEvents(fromMs, days = 30, limit = 800) {
       const p = swe.calculatePosition(jd, BODY[g]);
       r = { lon: norm(p.longitude - ay), lat: Number(p.latitude) };
     }
+    // NaN आए तो चुपचाप खाली सूची न बने: त्रुटि फेंको, ताकि पुराना (fallback) तरीका चले
+    if (!Number.isFinite(r.lon)) throw new Error('Swiss: अमान्य रेखांश ' + g);
     cache.set(key, r);
     if (cache.size > 50000) cache.clear();
     return r;
   };
-  return detectEvents({
+  const list = detectEvents({
     fromMs, days, limit,
     lonOf: (g, ms) => at(g, ms).lon,
     latOf: (g, ms) => at(g, ms).lat
   });
+  // खाली सूची का मतलब लगभग हमेशा गणना की गड़बड़ी है (महीने में कई घटनाएँ होती ही हैं)
+  if (!list.length) throw new Error('Swiss: घटनाएँ नहीं मिलीं');
+  return list;
 }
