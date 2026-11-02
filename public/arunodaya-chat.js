@@ -3,6 +3,7 @@
   var API = "/api/chat";
   var history = [];
   var busy = false;
+  var ctx = null; // निकाली गई कुंडली (सिर्फ़ इसी ब्राउज़र टैब की मेमोरी में)
   var AV = '<svg class="ap-av" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#fff3cf"/><path d="M8 48a24 24 0 0 1 48 0z" fill="#f2b705"/><path d="M32 22v-6" stroke="#10264a" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="14" r="3.2" fill="#a81010"/><rect x="11" y="31" width="5" height="9" rx="2.5" fill="#a81010"/><rect x="48" y="31" width="5" height="9" rx="2.5" fill="#a81010"/><rect x="15" y="22" width="34" height="26" rx="10" fill="#10264a"/><circle cx="32" cy="27.5" r="1.7" fill="#a81010"/><circle cx="24.5" cy="35" r="3.6" fill="#f2b705"/><circle cx="39.5" cy="35" r="3.6" fill="#f2b705"/><circle cx="25.4" cy="34" r="1.1" fill="#fff"/><circle cx="40.4" cy="34" r="1.1" fill="#fff"/><path d="M26 42q6 5 12 0" stroke="#f2b705" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
   var LOGO = '<svg class="ap-logo" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#10264a"/><path d="M12 44a20 20 0 0 1 40 0z" fill="#f2b705"/><path d="M32 8v6M13 16l4 4M51 16l-4 4" stroke="#f2b705" stroke-width="3" stroke-linecap="round"/><text x="32" y="42" text-anchor="middle" font-size="30" font-weight="700" fill="#a81010" font-family="Noto Sans Devanagari, sans-serif">अ</text></svg>';
 
@@ -99,10 +100,10 @@
   }
 
   function start() {
-    add("नमस्ते! मैं अरुणोदय AI सहायक हूँ। पंचांग, चौघड़िया, राहुकाल, मुहूर्त, राशिफल, कुंडली मिलान, दोष और व्रत-त्योहार के बारे में पूछ सकते हैं।", "b");
+    add("नमस्ते! मैं अरुणोदय AI सहायक हूँ। पंचांग, चौघड़िया, राहुकाल, मुहूर्त, राशिफल, व्रत-त्योहार और ज्योतिष के किसी भी विषय पर पूछ सकते हैं। अपनी जन्म तारीख़, जन्म समय और जन्म स्थान बताएँ तो मैं आपकी कुंडली का विश्लेषण भी करूँगा (रोज़ 10 बार)।", "b");
     var chips = document.createElement("div");
     chips.id = "ap-chips";
-    ["आज का पंचांग", "आज का राहुकाल", "आने वाले त्योहार", "कुंडली मिलान", "साइट पर कौन-सी सेवाएँ हैं?"].forEach(function (q) {
+    ["मेरी कुंडली का विश्लेषण", "आज का पंचांग", "आज का राहुकाल", "कुंडली मिलान", "आने वाले त्योहार"].forEach(function (q) {
       var c = document.createElement("button");
       c.className = "ap-chip";
       c.type = "button";
@@ -124,10 +125,11 @@
       var r = await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, ctx: ctx }),
       });
       if (!r.ok) throw new Error("http");
       var data = await r.json();
+      if (data.ctx) ctx = data.ctx;
       var reply = data.reply || "माफ़ कीजिए, अभी जवाब नहीं मिल पाया। कृपया दोबारा कोशिश करें।";
       wait.textContent = reply;
       history.push({ role: "assistant", content: reply });
