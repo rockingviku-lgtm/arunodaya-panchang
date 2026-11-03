@@ -39,3 +39,8 @@ html body article .ip-tbl a{font-weight:600}
 /* सेवाएँ पेज: तालिका और समूह-पंक्तियाँ */
 html body .svc-g td{background:var(--head);color:var(--headtx);padding:6px 10px}
 html body .svc-table td a{white-space:nowrap}
+/* फ़ुटर और हेडर के लिंक: एक-दूसरे से अलग और लाइन में टूटते हुए */
+html body footer nav{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 12px;padding:0}
+html body footer nav a{color:var(--headtx);text-decoration:none;padding:2px 0}
+html body footer nav a:hover{text-decoration:underline}
+html body header nav{display:flex;flex-wrap:wrap;gap:4px 6px}
