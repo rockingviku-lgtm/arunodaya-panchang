@@ -138,3 +138,7 @@ body.dash-on .bottom-nav{position:fixed!important;top:auto!important;left:0!impo
 body.dash-on .bottom-nav::-webkit-scrollbar{display:none}
 body.dash-on .bottom-nav button,body.dash-on .bottom-nav a{flex:0 0 auto;white-space:nowrap}
 body.dash-on,body.dash-on main{padding-bottom:72px}
+
+/* हेडर का प्रशासन-आइकन */
+.topbar .admin-ico{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;margin-left:8px;flex:0 0 auto;text-decoration:none}
+.topbar .admin-ico:hover{background:rgba(255,255,255,.3)}
