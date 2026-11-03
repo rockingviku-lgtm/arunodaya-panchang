@@ -40,13 +40,13 @@ body.dash-on .cosmos-scene{opacity:.12}
 .dash-tools button{background:var(--btnbg);color:var(--btntx);border:1px solid var(--btnbd);border-radius:4px;padding:6px 12px;font-size:.8rem;cursor:pointer}
 .dash-chart{background:var(--chart);color:var(--chartink);border-radius:0;padding:8px;overflow-x:auto}
 .dash-chart[hidden]{display:none}
-.dash-axis{display:flex;gap:6px;font-size:.7rem;color:#555;min-width:640px}.dash-axis i{width:56px}.dash-axis div{position:relative;flex:1;height:14px}.dash-axis span{position:absolute;transform:translateX(-30%)}
-.dash-row{display:flex;gap:6px;margin:4px 0;min-width:640px;align-items:stretch}
+.dash-axis{display:flex;gap:6px;font-size:.7rem;color:#555}.dash-axis i{width:56px}.dash-axis div{position:relative;flex:1;height:14px}.dash-axis span{position:absolute;transform:translateX(-30%)}
+.dash-row{display:flex;gap:6px;margin:4px 0;align-items:stretch}
 .dash-row>span{width:56px;font-size:.78rem;font-style:italic;color:#444;align-self:center}
 .dash-bar{flex:1;display:flex;border:1px solid #b9b0a6;background:#f4f0eb;min-height:34px}
 .dash-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.75rem;border-right:1px solid #b9b0a6;padding:2px;text-align:center;overflow:hidden;white-space:nowrap;color:#2b2b2b}
 .dash-seg.alt{background:#e7e1da}.dash-seg small{color:#6c6760;font-size:.65rem}
-.dash-sun{display:flex;justify-content:space-between;font-size:.75rem;color:#444;margin-top:4px;min-width:640px}
+.dash-sun{display:flex;justify-content:space-between;font-size:.75rem;color:#444;margin-top:4px}
 .dash-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-top:0}
 .dash-card{background:var(--dcard);border:1px solid var(--pborder);border-radius:0;overflow:hidden}
 .dash-ch,body.dash-on .home-daily-grid .section-heading{background:var(--dhead);padding:9px 14px;font-weight:600;color:var(--dheadtx)}
@@ -122,12 +122,14 @@ body.dash-on .topbar .today-btn{display:none}
 
 /* समय-रेखा: सुधरा हुआ लुक और दाएँ-से-बाएँ (RTL) मोड */
 .dash-chart{padding:10px 12px}
-.dash-chart.rtl{direction:rtl}
 .dash-row>span{font-weight:700;font-style:normal;font-size:.82rem;color:var(--dtxt,#222)}
 .dash-bar{border-radius:6px;overflow:hidden;min-height:38px;border-color:var(--line,#b9b0a6)}
 .dash-seg{font-size:.8rem;font-weight:600;border-inline-end:1px solid var(--line,#b9b0a6)}
 .dash-seg small{font-weight:500}
-.dash-chart.rtl .dash-seg:last-child{border-inline-end:0}
 .dash-axis{font-weight:600}
 .dash-tools button{font-weight:600}
 .dash-tools button[aria-pressed="true"]{background:var(--dacc,#a40d0d);color:#fff;border-color:var(--dacc,#a40d0d)}
+
+/* डेस्कटॉप पर पूरी चौड़ाई; मोबाइल पर दाएँ से बाएँ (JS से) और बिना ज़बरदस्ती की चौड़ाई */
+.dash-axis,.dash-row,.dash-sun,.dash-sunmoon{min-width:0;width:100%}
+@media(max-width:700px){.dash-chart{overflow:hidden;padding:8px 6px}.dash-row>span{width:44px;font-size:.72rem}.dash-axis i{width:44px}.dash-sunmoon i:first-child{width:44px}}

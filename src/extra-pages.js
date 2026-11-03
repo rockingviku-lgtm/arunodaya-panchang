@@ -346,21 +346,24 @@ function riseBody(place) {
 }
 
 
-// ---------- पंचांग टाइमलाइन (Drik जैसी: सूर्योदय से अगले सूर्योदय तक एक रेखा पर) ----------
-function timelineBody(place, iso) {
+// ---------- पंचांग टाइमलाइन (Drik जैसी): सूर्योदय से अगले सूर्योदय तक एक रेखा; होम स्ट्रिप इसी से बनती है ----------
+// rtl = true: समय दाएँ से बाएँ चलता है (नाम, सूर्योदय-सूर्यास्त और अंक भी उसी के अनुसार)
+export function timelineSvg(place, iso, rtl = false) {
   const pd = getPanchangDay(iso, place), dt = getDayTimes(iso, place), nx = getDayTimes(shiftDate(iso, 1), place);
-  if (!dt || !nx) return '<div class="pg-box"><h2>टाइमलाइन</h2><p class="pg-note">इस स्थान और तारीख़ पर सूर्योदय-सूर्यास्त उपलब्ध नहीं है।</p></div>';
+  if (!dt || !nx) return '<p class="pg-note">इस स्थान और तारीख़ पर सूर्योदय-सूर्यास्त उपलब्ध नहीं है।</p>';
   const sr = +dt.sunrise, ss = +dt.sunset, sr2 = +nx.sunrise, d0 = istMidnight(iso);
   const T0 = d0 + Math.floor((sr - d0) / HOUR) * HOUR, T1 = T0 + 25 * HOUR;
-  // viewBox पूरे बॉक्स की चौड़ाई में फ़िट होता है; किनारे पर लिखा हर शब्द viewBox के भीतर ही रखा जाता है
-  const W = 1000, L = 26, R = 26, PW = W - L - R, X = ms => L + (ms - T0) / (T1 - T0) * PW;
+  const W = 1000, L = 26, R = 26, PW = W - L - R;
+  const X = ms => (rtl ? L + PW - (ms - T0) / (T1 - T0) * PW : L + (ms - T0) / (T1 - T0) * PW);
+  const NX = rtl ? W - L : L, NA = rtl ? 'end' : 'start'; // पंक्ति के नाम: बाएँ (LTR) या दाएँ (RTL)
   const AX = 96, rows = [['तिथि', pd.tithis, 176], ['नक्षत्र', pd.nakshatras, 246], ['योग', pd.yogas, 316], ['करण', pd.karanas, 386]], WK = 458, H = WK + 48;
   const hhmm = ms => clock(ms).replace(' AM', ' am').replace(' PM', ' pm');
-  // पाठ को किनारों के भीतर रखने वाला x (text-anchor: middle के लिए)
   const cx = (x, str, fs) => { const half = str.length * fs * 0.55 + 4; return Math.min(W - half, Math.max(half, x)); };
   let g = '';
-  g += `<rect x="${L}" y="20" width="${X(sr) - L}" height="${H - 20}" class="tl-night"/><rect x="${X(ss)}" y="20" width="${Math.min(X(sr2), L + PW) - X(ss)}" height="${H - 20}" class="tl-night"/><rect x="${Math.min(X(sr2), L + PW)}" y="20" width="${Math.max(0, L + PW - X(sr2))}" height="${H - 20}" class="tl-night"/>`;
-  g += `<line x1="${L}" y1="${AX}" x2="${L + PW}" y2="${AX}" class="tl-axis"/>`;
+  // रात के भाग (सूर्यास्त से अगला सूर्योदय, और सुबह से पहले का भाग)
+  const band = (a, b) => { const x1 = X(Math.max(a, T0)), x2 = X(Math.min(b, T1)), w = Math.abs(x2 - x1); if (w > 0.5) g += `<rect x="${Math.min(x1, x2)}" y="20" width="${w}" height="${H - 20}" class="tl-night"/>`; };
+  band(T0, sr); band(ss, sr2);
+  g += `<line x1="${X(T0)}" y1="${AX}" x2="${X(T1)}" y2="${AX}" class="tl-axis"/>`;
   for (let t = T0; t <= T1; t += HOUR) {
     const hr = new Date(t + 330 * MIN).getUTCHours(), x = X(t);
     g += `<line x1="${x}" y1="${AX - 6}" x2="${x}" y2="${AX + 6}" class="tl-tick"/><text x="${x}" y="${AX + 26}" class="tl-t tl-hr" text-anchor="middle">${hr % 12 || 12}</text>`;
@@ -372,8 +375,9 @@ function timelineBody(place, iso) {
     g += `<circle cx="${X(+d)}" cy="${AX}" r="9" class="tl-moon"/><text x="${cx(X(+d), t, 15)}" y="${AX + 46}" class="tl-t tl-sm" text-anchor="middle">${t}</text>`;
   }
   if (iso === todayIST()) { const n = Date.now(); if (n >= T0 && n <= T1) g += `<line x1="${X(n)}" y1="${AX}" x2="${X(n)}" y2="${H - 34}" class="tl-now"/><circle cx="${X(n)}" cy="${AX}" r="10" class="tl-nowc"/>`; }
+  // बदलाव के क्षण: ऊपर अंक-चिह्न
   const ev = [];
-  const addEv = (list, kind) => list.forEach(s => { if (s.end && +s.end > sr && +s.end < sr2) ev.push({ t: +s.end, kind }); });
+  const addEv = (list, kind) => (list || []).forEach(s => { if (s.end && +s.end > sr && +s.end < sr2) ev.push({ t: +s.end, kind }); });
   addEv(pd.tithis, 'तिथि'); addEv(pd.nakshatras, 'नक्षत्र'); addEv(pd.yogas, 'योग'); addEv(pd.karanas, 'करण'); addEv(pd.moonRashi, 'चंद्र राशि');
   ev.sort((a, b) => a.t - b.t);
   const clusters = [];
@@ -382,35 +386,31 @@ function timelineBody(place, iso) {
     const y1 = AX - 30 - (i % 2) * 16;
     g += `<line x1="${X(c.t)}" y1="${y1 + 8}" x2="${X(c.t)}" y2="${AX}" class="tl-tick"/><circle cx="${X(c.t)}" cy="${y1 - 4}" r="11" class="tl-badge"/><text x="${X(c.t)}" y="${y1}" class="tl-t tl-num" text-anchor="middle">${i + 1}</text>`;
   });
+  // हर पंक्ति: नाम, रेखा, खंडों के नाम, और बदलाव पर ▶◀ (Drik जैसा) व समय
   for (const [name, list, y] of rows) {
-    g += `<text x="${L}" y="${y - 10}" class="tl-t tl-rl">${name}</text><line x1="${X(sr)}" y1="${y}" x2="${X(sr2)}" y2="${y}" class="tl-row"/>`;
+    g += `<text x="${NX}" y="${y - 10}" text-anchor="${NA}" class="tl-t tl-rl">${name}</text><line x1="${X(sr)}" y1="${y}" x2="${X(sr2)}" y2="${y}" class="tl-row"/>`;
     let prev = sr;
-    list.forEach(s => {
+    (list || []).forEach(s => {
       const end = s.end ? +s.end : sr2, x0 = X(prev), x1 = X(Math.min(end, sr2));
-      if (x1 - x0 > 40) g += `<text x="${cx((x0 + x1) / 2, s.label, 18)}" y="${y + 26}" class="tl-t tl-seg" text-anchor="middle">${esc(s.label)}</text>`;
+      if (Math.abs(x1 - x0) > 40) g += `<text x="${cx((x0 + x1) / 2, s.label, 18)}" y="${y + 26}" class="tl-t tl-seg" text-anchor="middle">${esc(s.label)}</text>`;
       if (s.end && end < sr2 - 60000) {
-        const et = hhmm(end);
-        g += `<line x1="${x1}" y1="${AX}" x2="${x1}" y2="${y}" class="tl-dash"/><line x1="${x1}" y1="${y - 6}" x2="${x1}" y2="${y + 6}" class="tl-tick"/><text x="${cx(x1, et, 14)}" y="${y - 12}" class="tl-t tl-sm" text-anchor="middle">${et}</text>`;
+        const et = hhmm(end), k = rtl ? -1 : 1;
+        g += `<line x1="${x1}" y1="${AX}" x2="${x1}" y2="${y}" class="tl-dash"/><path d="M${x1 - 6 * k} ${y - 5} L${x1} ${y} L${x1 - 6 * k} ${y + 5} Z M${x1 + 6 * k} ${y - 5} L${x1} ${y} L${x1 + 6 * k} ${y + 5} Z" class="tl-bow"/><text x="${cx(x1, et, 14)}" y="${y - 12}" class="tl-t tl-sm" text-anchor="middle">${et}</text>`;
       }
       prev = end;
     });
   }
   const ch = chaughadiya(iso, place), bad = [...ch.day, ...ch.night].filter(c => !c.good);
-  g += `<text x="${L}" y="${WK - 10}" class="tl-t tl-rl">वार</text><line x1="${X(sr)}" y1="${WK}" x2="${X(sr2)}" y2="${WK}" class="tl-row"/>`;
+  g += `<text x="${NX}" y="${WK - 10}" text-anchor="${NA}" class="tl-t tl-rl">वार</text><line x1="${X(sr)}" y1="${WK}" x2="${X(sr2)}" y2="${WK}" class="tl-row"/>`;
   bad.forEach(c => {
     const a = X(+c.start), b = X(+c.end);
     g += `<line x1="${a}" y1="${WK - 9}" x2="${a}" y2="${WK + 9}" class="tl-tick"/><line x1="${b}" y1="${WK - 9}" x2="${b}" y2="${WK + 9}" class="tl-tick"/><line x1="${a}" y1="${WK}" x2="${b}" y2="${WK}" class="tl-bad"/><text x="${cx((a + b) / 2, c.name, 15)}" y="${WK - 14}" class="tl-t tl-sm" text-anchor="middle">${esc(c.name)}</text>`;
   });
   g += `<text x="${cx((X(sr) + X(sr2)) / 2, wdOf(iso), 18)}" y="${WK + 34}" class="tl-t tl-seg" text-anchor="middle">${esc(wdOf(iso))}</text>`;
-  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;height:auto;min-width:900px" role="img" aria-label="पंचांग टाइमलाइन"><style>.tl-t{fill:var(--dtxt,#111);font-family:inherit}.tl-night{fill:rgba(0,0,0,.10)}.tl-axis{stroke:var(--dtxt,#111);stroke-width:2.5}.tl-tick{stroke:var(--dtxt,#111);stroke-width:1.6}.tl-row{stroke:var(--dtxt,#111);stroke-width:1.2;opacity:.55}.tl-dash{stroke:var(--dtxt,#111);stroke-width:1.2;stroke-dasharray:5 5;opacity:.5}.tl-sun{fill:#f3a21b;stroke:#a35f00;stroke-width:1.2}.tl-moon{fill:#9aa1ab;stroke:#fff;stroke-width:2}.tl-now{stroke:var(--dtxt,#111);stroke-width:1.6;stroke-dasharray:4 4}.tl-nowc{fill:#fff;stroke:var(--dtxt,#111);stroke-width:2.5}.tl-bad{stroke:#b3261e;stroke-width:3}.tl-badge{fill:var(--dhead,#5c5f63)}.tl-hr{font-size:17px}.tl-sm{font-size:15px}.tl-seg{font-size:19px;font-weight:600}.tl-rl{font-size:17px;font-weight:700}.tl-num{font-size:14px;font-weight:700;fill:#fff}</style>${g}</svg>`;
-  const foot = clusters.map((c, i) => `<span style="display:inline-block;margin:2px 16px 2px 0"><b>${i + 1}.</b> ${esc([...new Set(c.kinds)].join(', '))} <small>(${hhmm(c.t)})</small></span>`).join('');
-  return `<div class="pg-box"><h2>टाइमलाइन · ${fmtDay(iso)}, ${wdOf(iso)} · ${esc(place.name)}</h2>
-    <div style="padding:8px 8px 0;overflow-x:auto;-webkit-overflow-scrolling:touch">${svg}</div>
-    <div style="padding:6px 14px 10px;font-size:14px">${foot}</div>
-    <p class="pg-note" style="margin:0;padding:0 14px 12px">रेखा सूर्योदय (${hhmm(sr)}) से अगले सूर्योदय (${hhmm(sr2)}) तक है। गहरा भाग रात है। ऊपर के अंक उन क्षणों को बताते हैं जब कुछ बदलता है, नीचे सूची में नाम हैं। लाल पट्टियाँ अशुभ चौघड़िया हैं। भूरा गोला चंद्रोदय या चंद्रास्त है।</p></div>`;
+  const style = `<style>.tl-t{fill:var(--dtxt,#111);font-family:inherit}.tl-night{fill:rgba(0,0,0,.12)}.tl-axis{stroke:var(--dtxt,#111);stroke-width:2.5}.tl-tick{stroke:var(--dtxt,#111);stroke-width:1.6}.tl-row{stroke:var(--dtxt,#111);stroke-width:1.2;opacity:.55}.tl-dash{stroke:var(--dtxt,#111);stroke-width:1.2;stroke-dasharray:5 5;opacity:.5}.tl-bow{fill:#a0603a}.tl-sun{fill:#f3a21b;stroke:#a35f00;stroke-width:1.2}.tl-moon{fill:#9aa1ab;stroke:#fff;stroke-width:2}.tl-now{stroke:var(--dtxt,#111);stroke-width:1.6;stroke-dasharray:4 4}.tl-nowc{fill:#fff;stroke:var(--dtxt,#111);stroke-width:2.5}.tl-bad{stroke:#b3261e;stroke-width:3}.tl-badge{fill:var(--dhead,#5c5f63)}.tl-hr{font-size:17px}.tl-sm{font-size:15px}.tl-seg{font-size:19px;font-weight:600}.tl-rl{font-size:17px;font-weight:700}.tl-num{font-size:14px;font-weight:700;fill:#fff}</style>`;
+  return `<div class="tl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;height:auto;min-width:900px" role="img" aria-label="पंचांग टाइमलाइन">${style}${g}</svg></div>`;
 }
 
-// ---------- फ्रेम: टूलबार, बाइंडिंग, पेज ----------
 const birthFields = (k, lab) => `<span class="mp-grp"><b>${lab}</b><input type="date" data-b="${k}" data-f="date" value="${esc(B[k].date)}" aria-label="${lab} जन्म तारीख़"><input type="time" data-b="${k}" data-f="time" value="${esc(B[k].time)}" aria-label="${lab} जन्म समय"></span>`;
 const monthTool = (k, S) => `<button type="button" data-mv="${k}:-1">‹ पिछला</button><input type="month" data-s="${k}" data-f="month" value="${S.month}"><button type="button" data-mv="${k}:0">इस माह</button><button type="button" data-mv="${k}:1">अगला ›</button>`;
 
