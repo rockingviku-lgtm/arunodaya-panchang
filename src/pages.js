@@ -8,13 +8,14 @@ import {
   grahaPositions, ascendantSidereal, chaughadiya, horas, planetaryEvents, RASHI_HI, GRAHA_ORDER
 } from './graha-engine.js';
 import { mountRashifal } from './rashifal.js';
+import { swissPlanetaryEvents } from './swe-events.js';
 import { EXTRA_TITLES, makeExtraPages, mountExtraTools } from './extra-pages.js';
 import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pages.js';
-import { JYOTISH_TITLES, makeJyotishPages, mountJyotishTools } from './jyotish-pages.js';
 
 const TZ = 'Asia/Kolkata', STORE = 'arunodaya.place';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clock = d => new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ }).format(d).toUpperCase();
+const mdt = (d, iso) => !d ? '—' : new Date(+d + 330 * 60000).toISOString().slice(0, 10) === iso ? clock(d) : new Intl.DateTimeFormat('hi-IN', { day: 'numeric', month: 'short', timeZone: TZ }).format(d) + ', ' + clock(d);
 const istISO = ms => new Date(ms + 330 * 60000).toISOString();
 const MON = ['जन॰', 'फ़र॰', 'मार्च', 'अप्रै॰', 'मई', 'जून', 'जुला॰', 'अग॰', 'सित॰', 'अक्टू॰', 'नव॰', 'दिस॰'];
 const MONFULL = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
@@ -29,7 +30,21 @@ const RASHI_LORD = ['मंगल', 'शुक्र', 'बुध', 'चंद�
 const NAK_LORD = ['केतु', 'शुक्र', 'सूर्य', 'चंद्र', 'मंगल', 'राहु', 'गुरु', 'शनि', 'बुध'];
 const evGlyph = t => /युति/.test(t) ? '☌' : /60°/.test(t) ? '⚹' : /90°/.test(t) ? '□' : /120°/.test(t) ? '△' : /150°/.test(t) ? '⚻' : /180°/.test(t) ? '☍' : (PG[t.split(' ')[0]] || '●');
 
-const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES, ...JYOTISH_TITLES };
+// ग्रह-घटनाएँ: पहले Swiss Ephemeris से (सटीक), विफल हो तो पुराना गणना-तरीका। पूरा होते ही पेज दोबारा बनता है।
+const EVC = new Map(), EVP = new Set();
+function eventsList(from, days) {
+  const key = `${from}|${days}`;
+  if (EVC.has(key)) return EVC.get(key);
+  if (!EVP.has(key)) {
+    EVP.add(key);
+    swissPlanetaryEvents(from, days, 800)
+      .then(l => EVC.set(key, l), () => EVC.set(key, planetaryEvents(from, days, 800)))
+      .finally(() => refresh());
+  }
+  return null;
+}
+
+const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES };
 const KEYS = Object.keys(TITLES);
 
 // ---------- साझा स्थिति ----------
@@ -41,11 +56,13 @@ const S = { date: todayIST(), month: todayIST().slice(0, 7), time: nowTime(), st
 const CSS = `<style id="pg-style">
 #pg-root{position:fixed;inset:0;z-index:9999;overflow-y:auto;background:var(--dbg,#efefef);color:var(--dtxt,#222);font:15px/1.55 inherit}
 #pg-root *{box-sizing:border-box}
-.pg-bar{position:sticky;top:0;z-index:2;background:var(--bar,#a80f0f);color:#fff;display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-left,0px))}
+.pg-head{position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0003}
+.pg-bar{background:var(--bar,#a80f0f);color:#fff;display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-left,0px))}
 .pg-bar button{background:#fff;color:#a80f0f;border:0;padding:7px 14px;font:inherit;font-weight:700;cursor:pointer}
 .pg-bar b{font-size:1.05rem;flex:1}
-.pg-tabs{display:flex;flex-wrap:wrap;background:var(--dhead,#5c5f63);padding:0 max(16px,env(safe-area-inset-left,0px))}
-.pg-tabs button{background:none;border:0;color:var(--dheadtx,#fff);padding:10px 14px;font:inherit;cursor:pointer;opacity:.85}
+.pg-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;background:var(--dhead,#5c5f63);padding:0 max(16px,env(safe-area-inset-left,0px))}
+.pg-tabs::-webkit-scrollbar{display:none}
+.pg-tabs button{background:none;border:0;color:var(--dheadtx,#fff);padding:10px 14px;font:inherit;cursor:pointer;opacity:.85;white-space:nowrap;flex:0 0 auto}
 .pg-tabs button.on{background:rgba(255,255,255,.2);font-weight:700;opacity:1}
 .pg-tool{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px max(16px,env(safe-area-inset-left,0px));background:var(--tint,#e6e6e6);border-bottom:1px solid var(--pborder,#5c5f63)}
 .pg-tool input,.pg-tool select,.pg-tool button{font:inherit;padding:6px 10px;border:1px solid var(--btnbd,#bbb);background:var(--btnbg,#fff);color:var(--dtxt,#222)}
@@ -112,7 +129,9 @@ const PAGES = {
     body: () => {
       const [y, m] = S.month.split('-').map(Number), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
       const from = Date.parse(`${S.month}-01T00:00:00+05:30`), to = from + days * 86400000;
-      const ev = planetaryEvents(from, days, 800).filter(e => e.ms < to);
+      const all = eventsList(from, days);
+      if (!all) return `<div class="pg-box"><h2>${MONFULL[m - 1]} ${y} की ग्रह-घटनाएँ · ${esc(place.name)}</h2><p class="pg-note">Swiss Ephemeris से गणना हो रही है…</p></div>`;
+      const ev = all.filter(e => e.ms < to);
       return `<div class="pg-box"><h2>${MONFULL[m - 1]} ${y} की ग्रह-घटनाएँ · ${esc(place.name)}</h2><div class="pg-cols">${ev.length ? ev.map(e => `<div class="pg-ev"><i style="color:${/°|युति/.test(e.text) ? 'inherit' : (PC[e.text.split(' ')[0]] || 'inherit')}">${evGlyph(e.text)}</i><div><b>${esc(e.text)}</b><small>${esc(fmtDT(e.ms))}</small></div></div>`).join('') : '<p class="pg-note">इस महीने कोई प्रमुख ग्रह-घटना नहीं।</p>'}</div>
         <p class="pg-note">घटनाओं में राशि-परिवर्तन, नक्षत्र-प्रवेश, वक्री/मार्गी, क्रांतिवृत्त पारगमन, युति और ग्रहों के आपसी कोण (60°, 90°, 120°, 150°, 180°) शामिल हैं। समय IST में, निरयण (लाहिरी)।</p></div>`;
     },
@@ -134,7 +153,7 @@ const PAGES = {
       const pd = getPanchangDay(S.date, place), dt = getDayTimes(S.date, place);
       const day0 = S.date;
       let a = kv('स्थान', esc(place.name)) + kv('वार', esc(pd.weekday)) + kv('पक्ष', esc(pd.paksha)) + kv('सूर्योदय', clock(pd.sunrise)) + kv('सूर्यास्त', clock(pd.sunset))
-        + kv('चंद्रोदय', pd.moonrise ? clock(pd.moonrise) : '—') + kv('चंद्रास्त', pd.moonset ? clock(pd.moonset) : '—')
+        + kv('चंद्रोदय', mdt(pd.moonrise, S.date)) + kv('चंद्रास्त', mdt(pd.moonset, S.date))
         + kv('तिथि', seg(pd.tithis, day0)) + kv('नक्षत्र', seg(pd.nakshatras, day0)) + kv('योग', seg(pd.yogas, day0)) + kv('करण', seg(pd.karanas, day0))
         + kv('चंद्र राशि', seg(pd.moonRashi, day0)) + kv('सूर्य राशि', esc(pd.sunRashi)) + kv('सूर्य नक्षत्र', esc(pd.sunNakshatra))
         + kv('अमांत मास', esc(pd.amantaMonth)) + kv('पूर्णिमांत मास', esc(pd.purnimantaMonth))
@@ -216,8 +235,7 @@ const PAGES = {
 };
 
 Object.assign(PAGES, makePages(() => refresh()));
-Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox }));
-Object.assign(PAGES, makeJyotishPages({ refresh: () => refresh(), getPlace: () => place, placeBox }));
+Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox, S, bindDate }));
 
 function bindDate(root) {
   root.querySelector('#pg-date')?.addEventListener('change', e => { if (e.target.value) { S.date = e.target.value; refresh(); } });
@@ -233,8 +251,8 @@ function refresh() {
   let html = '';
   try { html = pg.body(); } catch (e) { console.error(e); html = '<p class="pg-note">यह पेज लोड नहीं हो सका।</p>'; }
   root.innerHTML = `${CSS}
-    <div class="pg-bar"><button type="button" id="pg-back">← होम</button><b>${esc(TITLES[cur])}</b></div>
-    <div class="pg-tabs">${KEYS.map(k => `<button type="button" data-more="${k}" class="${k === cur ? 'on' : ''}">${esc(TITLES[k])}</button>`).join('')}</div>
+    <div class="pg-head"><div class="pg-bar"><button type="button" id="pg-back">← होम</button><b>${esc(TITLES[cur])}</b></div>
+    <div class="pg-tabs">${KEYS.map(k => `<button type="button" data-more="${k}" class="${k === cur ? 'on' : ''}">${esc(TITLES[k])}</button>`).join('')}</div></div>
     <div class="pg-tool">${pg.tool()}</div><div class="pg-main">${html}</div>`;
   root.querySelector('#pg-back').onclick = () => closePage();
   root.querySelector('#pg-find')?.addEventListener('click', async () => {
@@ -270,7 +288,6 @@ export function mountPages() {
   window.__pgMounted = true;
   mountMilanTools();
   mountExtraTools();
-  mountJyotishTools();
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-more]');
     if (!b || !PAGES[b.dataset.more]) return;
