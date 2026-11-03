@@ -132,3 +132,9 @@ body.dash-on .topbar .today-btn{display:none}
 /* डेस्कटॉप पर पूरी चौड़ाई; मोबाइल पर दाएँ से बाएँ (JS से) और बिना ज़बरदस्ती की चौड़ाई */
 .dash-axis,.dash-row,.dash-sun,.dash-sunmoon{min-width:0;width:100%}
 @media(max-width:700px){.dash-chart{overflow:hidden;padding:8px 6px}.dash-row>span{width:44px;font-size:.72rem}.dash-axis i{width:44px}.dash-sunmoon i:first-child{width:44px}}
+
+/* नीचे की नेविगेशन पट्टी: मोबाइल और डेस्कटॉप दोनों पर नीचे स्थिर (scroll करने पर नहीं हिलती) */
+body.dash-on .bottom-nav{position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;z-index:1000;margin:0;overflow-x:auto;justify-content:center;flex-wrap:nowrap;scrollbar-width:none}
+body.dash-on .bottom-nav::-webkit-scrollbar{display:none}
+body.dash-on .bottom-nav button,body.dash-on .bottom-nav a{flex:0 0 auto;white-space:nowrap}
+body.dash-on,body.dash-on main{padding-bottom:72px}
