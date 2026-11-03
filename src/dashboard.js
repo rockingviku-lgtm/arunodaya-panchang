@@ -13,6 +13,10 @@ const dateHi = (iso) => new Intl.DateTimeFormat("hi-IN", { day: "numeric", month
 
 let clockTimer = null;
 let chartHidden = false;
+// समय-रेखा की दिशा: बाएँ से दाएँ (डिफ़ॉल्ट) या दाएँ से बाएँ; desktop और mobile दोनों पर एक ही बटन से
+let chartRtl = (() => { try { return localStorage.getItem("arunodaya-chart-dir") === "rtl"; } catch { return false; } })();
+const P = pct => (chartRtl ? `right:${pct}%` : `left:${pct}%`);
+const F = t => (chartRtl ? ({ "-50%": "50%", "-100%": "100%" }[t] ?? t) : t);
 
 function buildRow(title, segs, start, end) {
   const total = end - start;
@@ -33,16 +37,17 @@ function sunMoonLine(p) {
   const at = d => (((d - p.start) / total) * 100).toFixed(2);
   const tr = d => { const q = (d - p.start) / total * 100; return q < 4 ? "0" : q > 96 ? "-100%" : "-50%"; };
   const ok = d => d && d >= p.start && d <= p.end;
-  const sun = (d, lab) => ok(d) ? `<span style="position:absolute;left:${at(d)}%;top:0;transform:translateX(${tr(d)});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:24px;height:12px;margin:0 auto;border-radius:24px 24px 0 0;background:#f3a21b;border:1px solid #a35f00"></i>${esc(lab)} ${hm(d)}</span>` : "";
-  const moon = (d, lab) => ok(d) ? `<span style="position:absolute;left:${at(d)}%;top:0;transform:translateX(${tr(d)});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:12px;height:12px;margin:0 auto;border-radius:50%;background:#9aa1ab;border:1px solid #fff"></i>${esc(lab)} ${hm(d)}</span>` : "";
+  const sun = (d, lab) => ok(d) ? `<span style="position:absolute;${P(at(d))};top:0;transform:translateX(${F(tr(d))});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:24px;height:12px;margin:0 auto;border-radius:24px 24px 0 0;background:#f3a21b;border:1px solid #a35f00"></i>${esc(lab)} ${hm(d)}</span>` : "";
+  const moon = (d, lab) => ok(d) ? `<span style="position:absolute;${P(at(d))};top:0;transform:translateX(${F(tr(d))});text-align:center;font-size:11px;color:var(--dtxt);white-space:nowrap"><i style="display:block;width:12px;height:12px;margin:0 auto;border-radius:50%;background:#9aa1ab;border:1px solid #fff"></i>${esc(lab)} ${hm(d)}</span>` : "";
   const rowHtml = inner => `<div class="dash-sunmoon" style="display:flex;gap:6px;margin:0;min-width:640px"><i style="width:56px;flex:none"></i><div style="position:relative;flex:1;height:22px">${inner}</div></div>`;
   return rowHtml(sun(p.sunrise, "सूर्योदय") + sun(p.sunset, "सूर्यास्त")) + rowHtml(moon(p.moonrise, "चंद्रोदय") + moon(p.moonset, "चंद्रास्त"));
 }
 
 function renderChart(el, p) {
+  el.classList.toggle("rtl", chartRtl);
   const hours = [];
   const total = (p.end - p.start) / 3600000;
-  for (let h = 0; h <= 24; h += 4) { const pct = (h / total) * 100; const tr = h === 0 ? "0" : pct >= 99 ? "-100%" : "-50%"; hours.push(`<span class="${h % 8 ? "dash-hx" : ""}" style="left:${pct.toFixed(1)}%;transform:translateX(${tr});white-space:nowrap">${hm(new Date(p.start.getTime() + h * 3600000))}</span>`); }
+  for (let h = 0; h <= 24; h += 4) { const pct = (h / total) * 100; const tr = h === 0 ? "0" : pct >= 99 ? "-100%" : "-50%"; hours.push(`<span class="${h % 8 ? "dash-hx" : ""}" style="${P(pct.toFixed(1))};transform:translateX(${F(tr)});white-space:nowrap">${hm(new Date(p.start.getTime() + h * 3600000))}</span>`); }
   el.innerHTML = `
     <div class="dash-axis"><i></i><div>${hours.join("")}</div></div>
     ${sunMoonLine(p)}
@@ -197,6 +202,7 @@ export function mountDashboard(place = DEFAULT_PLACE) {
     <div class="dash-tools">
       <button type="button" id="dash-toggle-chart">चार्ट छुपाएं</button>
       <button type="button" id="dash-toggle-theme">थीम बदलें</button>
+      <button type="button" id="dash-toggle-dir"></button>
     </div>
     <div class="dash-chart" id="dash-chart"></div>
     <div class="dash-two">
@@ -214,6 +220,16 @@ export function mountDashboard(place = DEFAULT_PLACE) {
   sec.querySelector("#dash-toggle-theme").addEventListener("click", () => {
     const classic = document.body.classList.toggle("dash-classic");
     try { localStorage.setItem("arunodaya-theme-v2", classic ? "classic" : "modern"); } catch {}
+  });
+
+  const dirBtn = sec.querySelector("#dash-toggle-dir");
+  const paintDir = () => { dirBtn.textContent = chartRtl ? "बाएँ से दाएँ (LTR)" : "दाएँ से बाएँ (RTL)"; dirBtn.setAttribute("aria-pressed", String(chartRtl)); };
+  paintDir();
+  dirBtn.addEventListener("click", () => {
+    chartRtl = !chartRtl;
+    try { localStorage.setItem("arunodaya-chart-dir", chartRtl ? "rtl" : "ltr"); } catch {}
+    paintDir();
+    if (shownIso) refresh(shownIso);
   });
 
   let shownIso = null, userPicked = false;

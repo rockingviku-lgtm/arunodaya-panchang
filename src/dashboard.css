@@ -119,3 +119,15 @@ body.dash-classic .dl-good{color:#14602c}body.dash-classic .dl-bad{color:#9f1a00
 body.dash-on .topbar .today-btn{display:none}
 .topbar .site-logo{display:block;height:46px;width:auto;margin-left:auto;flex:0 0 auto}
 @media(max-width:700px){.topbar .site-logo{height:38px}}
+
+/* समय-रेखा: सुधरा हुआ लुक और दाएँ-से-बाएँ (RTL) मोड */
+.dash-chart{padding:10px 12px}
+.dash-chart.rtl{direction:rtl}
+.dash-row>span{font-weight:700;font-style:normal;font-size:.82rem;color:var(--dtxt,#222)}
+.dash-bar{border-radius:6px;overflow:hidden;min-height:38px;border-color:var(--line,#b9b0a6)}
+.dash-seg{font-size:.8rem;font-weight:600;border-inline-end:1px solid var(--line,#b9b0a6)}
+.dash-seg small{font-weight:500}
+.dash-chart.rtl .dash-seg:last-child{border-inline-end:0}
+.dash-axis{font-weight:600}
+.dash-tools button{font-weight:600}
+.dash-tools button[aria-pressed="true"]{background:var(--dacc,#a40d0d);color:#fff;border-color:var(--dacc,#a40d0d)}
