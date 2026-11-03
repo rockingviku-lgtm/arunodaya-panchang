@@ -47,7 +47,7 @@
   });
   function render() {
     if (!window.google || !google.accounts) return setTimeout(render, 300);
-    if (clientId.indexOf('REPLACE_') === 0) { msg.textContent = 'सेटअप बाकी है: Google Client ID डालें।'; return; }
+    if (clientId.indexOf(365096564403-h2pgu9j1shvpuqi2ed1eql97gr6soi94.apps.googleusercontent.com) === 0) { msg.textContent = 'सेटअप बाकी है: Google Client ID डालें।'; return; }
     google.accounts.id.initialize({ client_id: clientId, callback: window.onGoogleCredential });
     google.accounts.id.renderButton(document.getElementById('g-btn'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'hi' });
   }
