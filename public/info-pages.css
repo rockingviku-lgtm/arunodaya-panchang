@@ -35,3 +35,7 @@ html body .brand{color:#fff}
 html body .action{background:var(--head);color:var(--headtx);border:1px solid var(--head);border-radius:0}
 html body header .brand,html body header nav a{color:#fff}
 html body article .ip-tbl a{font-weight:600}
+
+/* सेवाएँ पेज: तालिका और समूह-पंक्तियाँ */
+html body .svc-g td{background:var(--head);color:var(--headtx);padding:6px 10px}
+html body .svc-table td a{white-space:nowrap}
