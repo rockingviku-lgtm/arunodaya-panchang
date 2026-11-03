@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="/info-pages.css">
 <script src="/info-pages.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<style>table{font-size:.9rem}th,td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line)}th{background:var(--head);color:var(--headtx)}.mini{margin:2px 4px 2px 0;padding:5px 9px;font:inherit;font-size:.8rem;cursor:pointer;border:1px solid var(--bd);background:var(--field);color:var(--tx)}.tabbtn{margin:0 6px 6px 0;padding:8px 12px;font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--panel);color:var(--tx)}</style>
 </head>
 <body>
 <header><div class="brand">ॐ Arunodaya Panchang</div><nav><a href="/">मुख्य वेबसाइट</a></nav></header>
@@ -20,16 +19,9 @@
 <div id="g-btn"></div>
 <p id="ad-msg" class="note" role="status"></p>
 </section>
-<section id="ad-panel" hidden>
-<h2>प्रशासन पैनल</h2>
-<p><button class="action" id="ad-out" type="button">लॉगआउट</button></p>
-<p>
-<button type="button" class="tabbtn" data-t="blocks">ब्लॉक</button>
-<button type="button" class="tabbtn" data-t="flags">चैट के फ़्लैग (30 दिन)</button>
-<button type="button" class="tabbtn" data-t="appeals">अपीलें</button>
-</p>
-<p class="note" id="ad-tab-msg"></p>
-<div id="ad-list" style="overflow-x:auto"></div>
+<section id="ad-panel" hidden><h2>प्रशासन पैनल</h2>
+<p>आप लॉगिन हैं। ब्लॉक और अपीलों की सूची यहाँ आएगी।</p>
+<button class="action" id="ad-out" type="button">लॉगआउट</button>
 </section>
 <p class="note">अंतिम अपडेट: 3 नवंबर 2026</p>
 </article></main>
@@ -41,7 +33,6 @@
   function show(admin) {
     document.getElementById('ad-login').hidden = admin;
     document.getElementById('ad-panel').hidden = !admin;
-    if (admin) load('blocks');
   }
   function check() { return fetch('/api/admin/me', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { show(!!d.admin); }).catch(function () { show(false); }); }
   window.onGoogleCredential = function (resp) {
@@ -51,72 +42,6 @@
       .then(function (d) { msg.textContent = d.message || ''; if (d.ok) check(); })
       .catch(function () { msg.textContent = 'नेटवर्क की समस्या। थोड़ी देर बाद कोशिश करें।'; });
   };
-  // ---- पैनल: सूची, स्थिति और फ़ैसले ----
-  var list = document.getElementById('ad-list'), tabMsg = document.getElementById('ad-tab-msg');
-  var LBL = { active: 'सक्रिय', expired: 'समय पूरा (स्वचालित)', needs_manual: 'मैन्युअल समीक्षा बाकी', lifted: 'हटाया गया', confirmed: 'पुष्ट', none: '—' };
-  var TIME = function (v) { var t = typeof v === 'number' ? v : Date.parse(v); return t ? new Date(t).toLocaleString('hi-IN', { timeZone: 'Asia/Kolkata' }) : '—'; };
-  function cell(tag, text) { var c = document.createElement(tag); c.textContent = text == null ? '—' : String(text); return c; }
-  function btn(label, onClick) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.className = 'mini'; b.addEventListener('click', onClick); return b; }
-  function act(key, action, note) {
-    tabMsg.textContent = 'सेव हो रहा है…';
-    return fetch('/api/admin/review', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: key, action: action, note: note || '' }) })
-      .then(function (r) { return r.json(); }).then(function (d) { tabMsg.textContent = d.message || ''; if (d.ok) load(current); });
-  }
-  var COLS = {
-    blocks: ['स्थिति', 'स्तर', 'शुरू', 'समाप्ति', 'समीक्षा', 'कारण', 'कार्रवाई'],
-    flags: ['समय', 'प्रकार', 'चैट संदेश', 'ब्लॉक', 'कार्रवाई'],
-    appeals: ['समय', 'नाम / ईमेल', 'ब्लॉक ID', 'अपील', 'स्थिति', 'कार्रवाई']
-  };
-  var current = 'blocks';
-  function renderTable(type, items) {
-    list.textContent = '';
-    if (!items.length) { list.appendChild(cell('p', 'कोई रिकॉर्ड नहीं।')); return; }
-    var t = document.createElement('table'), hr = document.createElement('tr');
-    COLS[type].forEach(function (h) { hr.appendChild(cell('th', h)); });
-    t.appendChild(hr);
-    items.forEach(function (it) {
-      var tr = document.createElement('tr'), td;
-      if (type === 'blocks') {
-        tr.appendChild(cell('td', LBL[it.view] || it.view));
-        tr.appendChild(cell('td', it.level));
-        tr.appendChild(cell('td', TIME(it.created_at)));
-        tr.appendChild(cell('td', TIME(it.expires_at)));
-        tr.appendChild(cell('td', it.review_mode === 'manual' ? 'मैन्युअल' : 'स्वचालित'));
-        tr.appendChild(cell('td', it.reason));
-        td = document.createElement('td');
-        td.appendChild(btn('हटाएँ', function () { act(it.key, 'lift', 'एडमिन ने हटाया'); }));
-        td.appendChild(btn('बढ़ाएँ', function () { act(it.key, 'extend', 'एडमिन ने बढ़ाया'); }));
-        td.appendChild(btn(it.review_mode === 'manual' ? 'स्वचालित करें' : 'मैन्युअल करें', function () { act(it.key, it.review_mode === 'manual' ? 'set_auto' : 'set_manual'); }));
-        td.appendChild(btn('सही माना', function () { act(it.key, 'confirm'); }));
-        tr.appendChild(td);
-      } else if (type === 'flags') {
-        tr.appendChild(cell('td', TIME(it.created_at)));
-        tr.appendChild(cell('td', it.kind));
-        tr.appendChild(cell('td', it.text));
-        tr.appendChild(cell('td', it.block_id || '—'));
-        td = document.createElement('td'); td.appendChild(btn('खारिज', function () { act(it.key, 'dismiss'); })); tr.appendChild(td);
-      } else {
-        tr.appendChild(cell('td', TIME(it.created_at)));
-        tr.appendChild(cell('td', (it.name || '—') + ' / ' + (it.email || '—')));
-        tr.appendChild(cell('td', it.block_id || '—'));
-        tr.appendChild(cell('td', it.reason));
-        tr.appendChild(cell('td', it.status));
-        td = document.createElement('td');
-        td.appendChild(btn('मंज़ूर', function () { act(it.key, 'appeal_accept', 'अपील मंज़ूर'); }));
-        td.appendChild(btn('ठुकराएँ', function () { act(it.key, 'appeal_reject', 'अपील ठुकराई'); }));
-        tr.appendChild(td);
-      }
-      t.appendChild(tr);
-    });
-    list.appendChild(t);
-  }
-  function load(type) {
-    current = type; tabMsg.textContent = 'लोड हो रहा है…';
-    fetch('/api/admin/records?type=' + type, { cache: 'no-store' }).then(function (r) { return r.json(); })
-      .then(function (d) { if (!d.ok) { tabMsg.textContent = d.message; return; } tabMsg.textContent = ''; renderTable(type, d.items); })
-      .catch(function () { tabMsg.textContent = 'सूची नहीं आ सकी।'; });
-  }
-  document.querySelectorAll('.tabbtn').forEach(function (b) { b.addEventListener('click', function () { load(b.dataset.t); }); });
   document.getElementById('ad-out').addEventListener('click', function () {
     fetch('/api/admin/logout', { method: 'POST' }).then(function () { show(false); msg.textContent = 'लॉगआउट हो गया।'; });
   });
