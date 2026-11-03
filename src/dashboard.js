@@ -15,10 +15,8 @@ const dateHi = (iso) => new Intl.DateTimeFormat("hi-IN", { day: "numeric", month
 let clockTimer = null;
 let chartHidden = false;
 // समय-रेखा की दिशा: बाएँ से दाएँ (डिफ़ॉल्ट) या दाएँ से बाएँ; desktop और mobile दोनों पर एक ही बटन से
-let chartRtl = (() => {
-  try { const v = localStorage.getItem("arunodaya-chart-dir"); if (v) return v === "rtl"; } catch {}
-  return !!(window.matchMedia && window.matchMedia("(max-width:700px)").matches); // पसंद सेव न हो तो मोबाइल पर दाएँ से बाएँ
-})();
+// मोबाइल पर समय दाएँ से बाएँ (डेस्कटॉप पर बाएँ से दाएँ); कोई बटन नहीं
+const chartRtl = !!(window.matchMedia && window.matchMedia("(max-width:700px)").matches);
 
 // होम की पंचांग-टाइमलाइन: वही Drik जैसा चार्ट (timeline पेज वाला), दिशा चुनी हुई के अनुसार
 function renderChart(el, iso, place) {
@@ -172,7 +170,6 @@ export function mountDashboard(place = DEFAULT_PLACE) {
     <div class="dash-tools">
       <button type="button" id="dash-toggle-chart">चार्ट छुपाएं</button>
       <button type="button" id="dash-toggle-theme">थीम बदलें</button>
-      <button type="button" id="dash-toggle-dir"></button>
     </div>
     <div class="dash-chart" id="dash-chart"></div>
     <div class="dash-two">
@@ -190,16 +187,6 @@ export function mountDashboard(place = DEFAULT_PLACE) {
   sec.querySelector("#dash-toggle-theme").addEventListener("click", () => {
     const classic = document.body.classList.toggle("dash-classic");
     try { localStorage.setItem("arunodaya-theme-v2", classic ? "classic" : "modern"); } catch {}
-  });
-
-  const dirBtn = sec.querySelector("#dash-toggle-dir");
-  const paintDir = () => { dirBtn.textContent = chartRtl ? "बाएँ से दाएँ (LTR)" : "दाएँ से बाएँ (RTL)"; dirBtn.setAttribute("aria-pressed", String(chartRtl)); };
-  paintDir();
-  dirBtn.addEventListener("click", () => {
-    chartRtl = !chartRtl;
-    try { localStorage.setItem("arunodaya-chart-dir", chartRtl ? "rtl" : "ltr"); } catch {}
-    paintDir();
-    if (shownIso) refresh(shownIso);
   });
 
   let shownIso = null, userPicked = false;

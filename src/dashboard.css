@@ -128,7 +128,6 @@ body.dash-on .topbar .today-btn{display:none}
 .dash-seg small{font-weight:500}
 .dash-axis{font-weight:600}
 .dash-tools button{font-weight:600}
-.dash-tools button[aria-pressed="true"]{background:var(--dacc,#a40d0d);color:#fff;border-color:var(--dacc,#a40d0d)}
 
 /* डेस्कटॉप पर पूरी चौड़ाई; मोबाइल पर दाएँ से बाएँ (JS से) और बिना ज़बरदस्ती की चौड़ाई */
 .dash-axis,.dash-row,.dash-sun,.dash-sunmoon{min-width:0;width:100%}
