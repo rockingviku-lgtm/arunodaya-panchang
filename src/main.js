@@ -1,6 +1,7 @@
 import "./style.css";
 import "./dashboard.css";
 import { mountDashboard } from "./dashboard.js";
+import { mountPages } from "./pages.js";
 
 import {
   buildKundliData,
@@ -1213,3 +1214,4 @@ autoRefreshPanchangSummary(
 
 // Drik-style dashboard (additive)
 mountDashboard();
+mountPages();
