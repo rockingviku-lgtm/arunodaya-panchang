@@ -251,8 +251,7 @@ function refresh() {
   let html = '';
   try { html = pg.body(); } catch (e) { console.error(e); html = '<p class="pg-note">यह पेज लोड नहीं हो सका।</p>'; }
   root.innerHTML = `${CSS}
-    <div class="pg-head"><div class="pg-bar"><button type="button" id="pg-back">← होम</button><b>${esc(TITLES[cur])}</b></div>
-    <div class="pg-tabs">${KEYS.map(k => `<button type="button" data-more="${k}" class="${k === cur ? 'on' : ''}">${esc(TITLES[k])}</button>`).join('')}</div></div>
+    <div class="pg-head"><div class="pg-bar"><button type="button" id="pg-back">← होम</button><b>${esc(TITLES[cur])}</b></div></div>
     <div class="pg-tool">${pg.tool()}</div><div class="pg-main">${html}</div>`;
   root.querySelector('#pg-back').onclick = () => closePage();
   root.querySelector('#pg-find')?.addEventListener('click', async () => {
