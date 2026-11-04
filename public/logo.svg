@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 72" role="img" aria-label="अरुणोदय पंचांग">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe9a8"/>
+      <stop offset="1" stop-color="#d99a2b"/>
+    </linearGradient>
+  </defs>
+  <circle cx="36" cy="36" r="33" fill="#5c1200" stroke="url(#gold)" stroke-width="2.5"/>
+  <circle cx="36" cy="36" r="28" fill="none" stroke="#e9b04a" stroke-opacity=".35" stroke-width="1"/>
+  <text x="36" y="49" text-anchor="middle" font-family="'Noto Sans Devanagari','Mangal',sans-serif" font-size="38" font-weight="700" fill="url(#gold)">ॐ</text>
+  <text x="82" y="36" font-family="'Noto Sans Devanagari','Mangal',sans-serif" font-size="25" font-weight="700" fill="url(#gold)">अरुणोदय</text>
+  <line x1="84" y1="44" x2="150" y2="44" stroke="#e9b04a" stroke-opacity=".7" stroke-width="1"/>
+  <text x="84" y="59" font-family="'Noto Sans','Arial',sans-serif" font-size="10.5" font-weight="600" letter-spacing="3.2" fill="#f6d58e">PANCHANG · पंचांग</text>
+</svg>
