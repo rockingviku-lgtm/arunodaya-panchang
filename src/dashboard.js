@@ -150,9 +150,12 @@ function addLogo() {
   bar.appendChild(img);
 }
 
+// फ़ुटर के लिंक में ब्लॉक नियम और अपील जोड़ना (main.js बदले बिना); पहले से हों तो दोबारा नहीं
+// हेडर में छोटा प्रशासन-आइकन (सबको दिखता है; खोलने पर सिर्फ़ मालिक का Google लॉगिन चलता है)
 export function mountDashboard(place = DEFAULT_PLACE) {
   mountPages(); // "और देखें" बटन के पूरे पेज
   addLogo();
+
   const anchor = document.querySelector(".date-strip");
   if (!anchor || document.querySelector("#dash-top")) return;
 
