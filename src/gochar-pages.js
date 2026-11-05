@@ -135,7 +135,13 @@ function guideHtml(place) {
   const list = steps.map(([t, d], i) => `<li><b>${i + 1}. ${esc(t)}</b><br>${esc(d)}</li>`).join('');
   const example = chartBlock(cc, 'उदाहरण शीट: 16 दिसंबर 2026, दोपहर 12 बजे IST',
     `लग्न: ${RASHI[cc.a]} (D1), ${RASHI[cc.a9]} (D9)। स्थान: ${place.name}। यही चित्र किसी भी पंक्ति पर टैप करने पर दिखता है।`);
-  return `<div class="gc-guide"><h2>उपयोग-विधि</h2><ol style="padding-left:20px">${list}</ol>${example}</div>`;
+  return `<div class="gc-guide"><h2>उपयोग-विधि</h2><ol style="padding-left:20px">${list}</ol>
+  <h3 style="font-size:15px;margin:14px 0 6px">खोज कैसे करें</h3>
+  <p>खोज बॉक्स में जो शब्द लिखेंगे, वह चुने हुए टैब और वर्ष की हर पंक्ति में ढूँढा जाता है। बड़े-छोटे अक्षर का फ़र्क नहीं पड़ता।</p>
+  <ul style="padding-left:20px"><li><b>शनि</b>: शनि से जुड़ी घटनाएँ (ग्रह-घटनाएँ टैब)</li><li><b>तुला</b>: तुला राशि वाली हर पंक्ति</li><li><b>वक्री</b> या <b>मार्गी</b>: वक्री/मार्गी होने की तारीख़ें</li><li><b>वर्गोत्तम</b>: वर्गोत्तम होने वाली घटनाएँ</li><li><b>16 दिस</b>: 16 दिसंबर की घटना</li><li><b>2026-12</b>: दिसंबर (मासिक टैब में)</li></ul>
+  <p class="gc-note">ध्यान दें: खोज सिर्फ़ चुने हुए वर्ष में होती है। दूसरे साल के लिए पहले वर्ष बदलें।</p>
+  <img src="/gochar-search-help.png" alt="खोज बॉक्स और नतीजों का उदाहरण" style="width:100%;max-width:390px;display:block;border-radius:8px;border:1px solid var(--gc-line,#d98a4c);margin:8px 0">
+  ${example}</div>`;
 }
 
 function body(place) {
