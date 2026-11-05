@@ -1,8 +1,8 @@
-// गोचर-गणना (2026–2099): ग्रहों का राशि-परिवर्तन, वक्री/मार्गी और वर्गोत्तम। केवल गणना, बिना I/O। पेज: gochar-pages.js
+// गोचर-गणना (2026–2100): ग्रहों का राशि-परिवर्तन, वक्री/मार्गी और वर्गोत्तम। केवल गणना, बिना I/O। पेज: gochar-pages.js
 // दिन-स्तर पर नमूने (IST दोपहर 12 बजे) लेकर घटनाएँ पहचानी जाती हैं; इसलिए तारीख़ एक दिन की सटीकता की है।
 import { grahaPositions, ascendantSidereal, GRAHA_HI, GRAHA_SHORT, RASHI_HI, GRAHA_ORDER } from './graha-engine.js';
 
-export const YEAR_MIN = 2026, YEAR_MAX = 2099;
+export const YEAR_MIN = 2026, YEAR_MAX = 2100;
 const IST_OFFSET = 330 * 60000;
 const MONTHS_HI = ['जन॰', 'फ़र॰', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुला॰', 'अग॰', 'सितं॰', 'अक्टू॰', 'नव॰', 'दिस॰'];
 const PLANETS = GRAHA_ORDER.filter((g) => g !== 'moon'); // चंद्र रोज़ राशि बदलता है, इसलिए गोचर-सूची से बाहर

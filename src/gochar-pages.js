@@ -1,14 +1,15 @@
-// "गोचर और फलादेश" पेज (#/gochar): 2026–2031 की Excel-जैसी शीट: वार्षिक फलादेश, मासिक कुंडली-ग्रह, ग्रह-घटनाएँ।
+// "गोचर और फलादेश" पेज (#/gochar): 2026–2100 की Excel-जैसी शीट (वर्ष चुनकर): वार्षिक फलादेश, मासिक कुंडली-ग्रह, ग्रह-घटनाएँ, और उपयोग-विधि।
 // हर पंक्ति पर टैप करने से D1 राशि और D9 नवांश कुंडली दिखती है। रंग site के रंगों से मिलते हैं और हर बार बदल सकते हैं।
 // pages.js इसे import करता है; होम के टूल-ग्रिड में कार्ड भी यहीं से जुड़ता है। हिसाब gochar-data.js और gochar-engine.js में है।
 import { buildGocharData, SHEET_YEARS } from './gochar-data.js';
+import { chartFor, istNoon } from './gochar-engine.js';
 import { DEFAULT_PLACE } from './festival-calendar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const letter = i => { let s = '', n = i + 1; while (n) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
 
 export const GOCHAR_TITLES = { gochar: 'गोचर और फलादेश' };
-const TOOL_INFO = { gochar: ['गोचर, फलादेश और कुंडली', '2026–2031: ग्रह-गोचर, D1/D9 कुंडली, वक्री-मार्गी, वर्गोत्तम'] };
+const TOOL_INFO = { gochar: ['गोचर, फलादेश और कुंडली', '2026–2100: ग्रह-गोचर, D1/D9 कुंडली, वक्री-मार्गी, वर्गोत्तम'] };
 
 // site के रंग-परिवार (maroon header, cream band, orange panel); हर बार एक चुना जाता है और बटन से बदलता है
 const PALETTES = [
@@ -20,7 +21,7 @@ const PALETTES = [
 ];
 
 // स्थिति (पेज खुला रहने तक)
-const ST = { tab: 'yearly', year: '', q: '', sel: 0, pal: Math.floor(Math.random() * PALETTES.length), data: null, busy: false, err: false };
+const ST = { tab: 'yearly', year: '2026', q: '', sel: 0, pal: Math.floor(Math.random() * PALETTES.length), cache: {}, busy: null, err: false };
 
 const SHEETS = {
   yearly: { cols: [['वर्ष', 'year'], ['राशि', 'rashi'], ['समग्र', 'overall', 'star'], ['करियर', 'career', 'star'], ['धन', 'money', 'star'], ['प्रेम', 'love', 'star'], ['स्वास्थ्य', 'health', 'star'], ['मुख्य नोट', 'note', 'wrap']], chart: r => r.chart, title: r => `कुंडली: ${r.year} (${r.rashi}, 1 जनवरी)` },
@@ -108,6 +109,8 @@ const CSS = `<style>
 .gc-pl{font-size:16px;font-weight:700;fill:var(--gc-accent,#8b1a00);text-anchor:middle}
 .gc-note{margin:8px 0 0;font-size:12px;opacity:.85}
 .gc-load{padding:14px;opacity:.9}
+.gc-guide li{margin:8px 0}
+.gc-guide li b{color:var(--gc-accent,#8b1a00)}
 </style>`;
 
 function paletteVars() {
@@ -115,30 +118,55 @@ function paletteVars() {
   return `--gc-hd:${p.hd};--gc-ht:${p.ht};--gc-band:${p.band};--gc-accent:${p.accent};`;
 }
 
+const keyOf = (y, place) => `${y}|${place.name}`;
+
+// उपयोग-विधि टैब: चरण, और एक असली उदाहरण कुंडली (16 दिसंबर 2026, दोपहर 12 बजे IST)
+function guideHtml(place) {
+  const c = chartFor(istNoon(2026, 12, 16), place.lat, place.lon);
+  const cc = { a: c.ascSign, a9: c.asc9, p: c.planets.map(q => [q.short, q.sign, q.d9]) };
+  const steps = [
+    ['होम पेज खोलें', 'होम पर "गोचर, फलादेश और कुंडली" कार्ड पर टैप करें। पेज खुलते ही 2026 की शीट दिखेगी।'],
+    ['टैब चुनें', '"वार्षिक फलादेश": हर राशि का साल भर का फल (★ 5 में से) और करियर, धन, प्रेम, स्वास्थ्य के स्तर। "मासिक कुंडली और ग्रह": हर महीने की पहली तारीख़, दोपहर 12 बजे IST की ग्रह-स्थिति। "ग्रह-घटनाएँ": राशि-परिवर्तन, वक्री/मार्गी और वर्गोत्तम की तारीख़ें।'],
+    ['वर्ष चुनें', 'ऊपर के ड्रॉपडाउन से 2026 से 2100 तक कोई भी साल चुनें। हर साल का डेटा अलग बनता है, इसलिए पहली बार चुनने पर कुछ सेकंड लगते हैं।'],
+    ['खोजें', 'खोज बॉक्स में राशि या ग्रह का नाम लिखें, जैसे "तुला" या "शनि"; तो सिर्फ़ वही पंक्तियाँ रहेंगी।'],
+    ['पंक्ति पर टैप करें', 'किसी भी पंक्ति पर टैप करते ही नीचे उस क्षण की D1 (राशि) और D9 (नवांश) कुंडली बनती है। हर खाने के ऊपर राशि का क्रमांक है (1 = मेष … 12 = मीन), और अंदर उस राशि के ग्रह।'],
+    ['रंग बदलें', '"रंग बदलें" बटन से शीट के रंग बदलते हैं। यह सिर्फ़ दिखावट है, हिसाब पर असर नहीं।'],
+  ];
+  const list = steps.map(([t, d], i) => `<li><b>${i + 1}. ${esc(t)}</b><br>${esc(d)}</li>`).join('');
+  const example = chartBlock(cc, 'उदाहरण शीट: 16 दिसंबर 2026, दोपहर 12 बजे IST',
+    `लग्न: ${RASHI[cc.a]} (D1), ${RASHI[cc.a9]} (D9)। स्थान: ${place.name}। यही चित्र किसी भी पंक्ति पर टैप करने पर दिखता है।`);
+  return `<div class="gc-guide"><h2>उपयोग-विधि</h2><ol style="padding-left:20px">${list}</ol>${example}</div>`;
+}
+
 function body(place) {
-  const yearOpts = `<option value="">सभी वर्ष</option>` + SHEET_YEARS.map(y => `<option value="${y}"${String(y) === ST.year ? ' selected' : ''}>${y}</option>`).join('');
-  const tabs = [['yearly', 'वार्षिक फलादेश'], ['monthly', 'मासिक कुंडली और ग्रह'], ['events', 'ग्रह-घटनाएँ']]
+  const yearOpts = SHEET_YEARS.map(y => `<option value="${y}"${String(y) === String(ST.year) ? ' selected' : ''}>${y}</option>`).join('');
+  const tabs = [['yearly', 'वार्षिक फलादेश'], ['monthly', 'मासिक कुंडली और ग्रह'], ['events', 'ग्रह-घटनाएँ'], ['guide', 'उपयोग-विधि']]
     .map(([k, l]) => `<button type="button" data-gs="${k}" aria-pressed="${ST.tab === k}">${l}</button>`).join('');
-  const tools = `<div class="gc-tools">${tabs}</div>
-    <div class="gc-tools"><select data-gy aria-label="वर्ष">${yearOpts}</select><input type="search" data-gq value="${esc(ST.q)}" placeholder="खोजें…" aria-label="खोजें"><button type="button" data-gp>रंग बदलें</button></div>`;
+  let tools = `<div class="gc-tools">${tabs}</div>`;
+  if (ST.tab !== 'guide') tools += `<div class="gc-tools"><select data-gy aria-label="वर्ष">${yearOpts}</select><input type="search" data-gq value="${esc(ST.q)}" placeholder="खोजें…" aria-label="खोजें"><button type="button" data-gp>रंग बदलें</button></div>`;
   let content;
-  if (ST.err) content = `<p class="gc-load">इस समय शीट नहीं बन पाई। पेज दोबारा खोलें।</p>`;
-  else if (!ST.data) content = `<p class="gc-load">कुंडली और फलादेश की गणना हो रही है… (पहली बार कुछ सेकंड लगते हैं)</p>`;
+  if (ST.tab === 'guide') content = guideHtml(place);
+  else if (ST.err) content = `<p class="gc-load">इस समय शीट नहीं बन पाई। पेज दोबारा खोलें।</p>`;
   else {
-    const s = sheetHtml(ST.data);
-    content = `${s.panel}<div class="gc-count">${s.count} · ${ST.tab === 'yearly' ? 'वार्षिक' : ST.tab === 'monthly' ? 'मासिक' : 'घटनाएँ'}</div>${s.table}
+    const data = ST.cache[keyOf(ST.year, place)];
+    if (!data) content = `<p class="gc-load">${esc(ST.year)} की कुंडली और फलादेश की गणना हो रही है… (पहली बार कुछ सेकंड लगते हैं)</p>`;
+    else {
+      const s = sheetHtml(data);
+      content = `${s.panel}<div class="gc-count">${s.count} · ${ST.tab === 'yearly' ? 'वार्षिक' : ST.tab === 'monthly' ? 'मासिक' : 'घटनाएँ'}</div>${s.table}
       <p class="gc-note">★ = फलादेश का स्तर (5 में से)। D1 = राशि चक्र, D9 = नवांश। स्थान: ${esc(place.name)}। तारीख़ दिन-स्तर पर।</p>`;
+    }
   }
   return `${CSS}<div class="gc-root" style="${paletteVars()}"><h2>गोचर, फलादेश और कुंडली (${SHEET_YEARS[0]}–${SHEET_YEARS[SHEET_YEARS.length - 1]})</h2>${tools}${content}</div>`;
 }
 
-// भारी गणना एक बार, पेज को बताए बिना नहीं चलती: पूरी होने पर refresh
-function ensureData(place, refresh) {
-  if (ST.data || ST.busy) return;
-  ST.busy = true;
+// भारी गणना: केवल चुना हुआ वर्ष, एक बार; पूरी होने पर refresh
+function ensureData(year, place, refresh) {
+  const key = keyOf(year, place);
+  if (ST.cache[key] || ST.busy === key || ST.err) return;
+  ST.busy = key;
   setTimeout(() => {
-    try { ST.data = buildGocharData(place); } catch (e) { ST.err = true; console.error(e); }
-    ST.busy = false;
+    try { ST.cache[key] = buildGocharData(place, [Number(year)]); } catch (e) { ST.err = true; console.error(e); }
+    ST.busy = null;
     refresh();
   }, 30);
 }
@@ -156,7 +184,7 @@ export function makeGocharPages({ refresh, getPlace }) {
       tool: () => '',
       body: () => {
         const place = getPlace() || DEFAULT_PLACE;
-        if (!ST.data && !ST.busy && !ST.err) ensureData(place, refresh);
+        if (ST.tab !== 'guide') ensureData(ST.year, place, refresh);
         return body(place);
       },
       bind

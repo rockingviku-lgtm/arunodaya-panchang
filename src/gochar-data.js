@@ -1,10 +1,10 @@
-// गोचर-शीट का डेटा (2026–2031): वार्षिक फलादेश, मासिक कुंडली-ग्रह, और ग्रह-घटनाएँ। पेज और चैटबॉट दोनों इसी गणना से चलते हैं।
+// गोचर-शीट का डेटा (2026–2100; एक बार में एक या कुछ वर्ष): वार्षिक फलादेश, मासिक कुंडली-ग्रह, और ग्रह-घटनाएँ। पेज और चैटबॉट दोनों इसी गणना से चलते हैं।
 // भारी गणना है, इसलिए पेज इसे एक बार बनाकर cache करता है (buildGocharData)।
 import { monthEvents, positionTable, chartFor, istNoon, dayLabel, daysIn } from './gochar-engine.js';
 import { rashifal } from './rashifal.js';
 import { RASHI_HI } from './graha-engine.js';
 
-export const SHEET_YEARS = [2026, 2027, 2028, 2029, 2030, 2031];
+export const SHEET_YEARS = Array.from({ length: 2100 - 2026 + 1 }, (_, i) => 2026 + i); // 2026…2100
 export const KIND_HI = { ingress: 'राशि-परिवर्तन', station: 'वक्री / मार्गी', vargottam: 'वर्गोत्तम' };
 const pad = n => String(n).padStart(2, '0');
 export const starStr = n => '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n));
@@ -12,15 +12,16 @@ const short = (t, n = 140) => (t || '').length > n ? t.slice(0, n - 1) + '…' :
 const compact = c => ({ a: c.ascSign, a9: c.asc9, p: c.planets.map(q => [q.short, q.sign, q.d9]) });
 
 // एक बार की गणना: place = { name, lat, lon }
-export function buildGocharData(place) {
+// years: केवल वही वर्ष बनते हैं जो माँगे गए (पूरी 75 साल की गणना फ़ोन पर भारी पड़ती है)
+export function buildGocharData(place, years = SHEET_YEARS) {
   const yearly = [], monthly = [], events = [];
-  for (const y of SHEET_YEARS) {
+  for (const y of years) {
     const r = rashifal('year', `${y}-01-01`);
     for (const s of r.signs) {
       yearly.push({ year: y, rashi: s.name, overall: starStr(s.stars.overall), career: starStr(s.stars.career), money: starStr(s.stars.money), love: starStr(s.stars.love), health: starStr(s.stars.health), note: short(s.notes?.[0] || 'कोई विशेष नोट नहीं।') });
     }
   }
-  for (const y of SHEET_YEARS) for (let m = 1; m <= 12; m++) {
+  for (const y of years) for (let m = 1; m <= 12; m++) {
     const ms = istNoon(y, m, 1);
     const c = chartFor(ms, place.lat, place.lon);
     const tbl = positionTable(ms);
