@@ -12,6 +12,7 @@ import { swissPlanetaryEvents } from './swe-events.js';
 import { EXTRA_TITLES, makeExtraPages, mountExtraTools } from './extra-pages.js';
 import { MILAN_TITLES, MILAN_CSS, makePages, mountMilanTools } from './milan-pages.js';
 import { JYOTISH_TITLES, makeJyotishPages, mountJyotishTools } from './jyotish-pages.js';
+import { GOCHAR_TITLES, makeGocharPages, mountGocharTools } from './gochar-pages.js';
 
 const TZ = 'Asia/Kolkata', STORE = 'arunodaya.place';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,7 +46,7 @@ function eventsList(from, days) {
   return null;
 }
 
-const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES, ...JYOTISH_TITLES };
+const TITLES = { events: 'आने वाली ग्रह-घटनाएँ', panchang: 'दैनिक पंचांग', kundli: 'लग्न कुंडली', festivals: 'व्रत और त्योहार', rashifal: 'राशिफल', chaughadiya: 'चौघड़िया', hora: 'होरा', ...MILAN_TITLES, ...EXTRA_TITLES, ...JYOTISH_TITLES, ...GOCHAR_TITLES };
 const KEYS = Object.keys(TITLES);
 
 // ---------- साझा स्थिति ----------
@@ -237,6 +238,7 @@ const PAGES = {
 
 Object.assign(PAGES, makePages(() => refresh()));
 Object.assign(PAGES, makeJyotishPages({ refresh: () => refresh(), getPlace: () => place, placeBox }));
+Object.assign(PAGES, makeGocharPages({ refresh: () => refresh(), getPlace: () => place }));
 Object.assign(PAGES, makeExtraPages({ refresh: () => refresh(), getPlace: () => place, placeBox, S, bindDate }));
 
 function bindDate(root) {
@@ -290,6 +292,7 @@ export function mountPages() {
   mountMilanTools();
   mountExtraTools();
   mountJyotishTools();
+  mountGocharTools();
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-more]');
     if (!b || !PAGES[b.dataset.more]) return;
