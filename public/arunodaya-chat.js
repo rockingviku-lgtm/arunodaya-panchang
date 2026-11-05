@@ -84,6 +84,7 @@
   .ap-faces button{background:none;border:0;padding:2px;cursor:pointer;border-radius:50%;transition:transform .12s}
   .ap-faces button:hover,.ap-faces button:focus-visible{transform:scale(1.18)}
   .ap-skip{background:none;border:0;color:var(--ap-tx);opacity:.7;text-decoration:underline;font:inherit;font-size:13px;cursor:pointer;margin-top:6px}
+  body.dash-on #ap-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   #ap-root button:focus-visible,#ap-in:focus-visible{outline:3px solid #f2a13a;outline-offset:2px}
   @media (prefers-reduced-motion:reduce){#ap-btn::after,.ap-dots span,#ap-act.rec{animation:none}.ap-faces button{transition:none}}
   `;
