@@ -3,10 +3,8 @@
 import { moonSidereal, sunSidereal, sunTimes, shiftDate, NAKSHATRAS } from './festival-calendar.js';
 
 export const TABLES_STATUS = {
-  birdTable: 'secondary-two-traditions',
   activityTable: 'pending',
-  yama: 'secondary-one-tradition',
-  reason: 'पक्षी की तालिका दो सेकेंडरी स्रोतों से है और वे आपस में अलग हैं, इसलिए दोनों अलग-अलग दिखाए जाते हैं। पक्षी-गतिविधि का वार और दिन-रात वाला क्रम किसी स्रोत में पूरा नहीं मिला, इसलिए वह नहीं दिखाया जाता।'
+  reason: 'पक्षी-गतिविधि का वार और दिन-रात वाला क्रम उपलब्ध नहीं है, इसलिए वह नहीं दिखाया जाता।'
 };
 
 const norm = x => ((x % 360) + 360) % 360;
@@ -112,4 +110,10 @@ export function birthBirds(nakshatraNo, paksha) {
 export function fivePeriods(dt) {
   const parts = (from, len) => Array.from({ length: 5 }, (_, i) => [from + (len * i) / 5, from + (len * (i + 1)) / 5]);
   return { day: parts(dt.sunrise, dt.sunset - dt.sunrise), night: parts(dt.sunset, dt.nextSunrise - dt.sunset) };
+}
+
+// जन्म-पक्षी का एक ही परिणाम: पारंपरिक पुस्तक-तालिका (Pulippani) के अनुसार। अन्य परंपराओं में अंतर हो सकता है।
+export function birthBird(nakshatraNo, paksha) {
+  const t = BIRD_TRADITIONS.find(x => x.id === 'pulippani');
+  return t.paksha ? (paksha === 'शुक्ल' ? t.shukla : t.krishna).get(nakshatraNo) : t.map.get(nakshatraNo);
 }

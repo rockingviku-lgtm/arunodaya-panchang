@@ -1,26 +1,38 @@
-// "पंचपक्षी शास्त्र" टूल (#/panchapakshi): चंद्र नक्षत्र, पक्ष, तिथि और सूर्योदय-सूर्यास्त। पक्षी-तालिका स्रोत मिलने के बाद।
-import { istToMs, fmtIST, moonInfo, dayTimes, birthBirds, fivePeriods, TABLES_STATUS } from './panchapakshi-engine.js';
+// "पंचपक्षी शास्त्र" टूल (#/panchapakshi): जन्म-पक्षी, चंद्र नक्षत्र, पक्ष, तिथि, सूर्योदय-सूर्यास्त और दिन-रात के भाग; Excel-जैसी शीट में।
+import { istToMs, fmtIST, moonInfo, dayTimes, birthBird, fivePeriods, TABLES_STATUS } from './panchapakshi-engine.js';
 import { RASHI_HI } from './graha-engine.js';
 import { DEFAULT_PLACE } from './festival-calendar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const letter = i => String.fromCharCode(65 + i);
 export const PANCHAPAKSHI_TITLES = { panchapakshi: 'पंचपक्षी शास्त्र' };
-const TOOL_INFO = { panchapakshi: ['पंचपक्षी शास्त्र', 'जन्म-पक्षी (दो परंपराएँ), नक्षत्र, पक्ष, दिन-रात के भाग'] };
+const TOOL_INFO = { panchapakshi: ['पंचपक्षी शास्त्र', 'जन्म-पक्षी, नक्षत्र, पक्ष, दिन-रात के भाग'] };
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 const ST = { date: '', time: '18:30', run: null };
 
 const CSS = `<style>
-.pp-root{font:14px/1.5 "Noto Sans Devanagari",system-ui,sans-serif;color:#3a1a00}
+.pp-root{font:14px/1.5 "Noto Sans Devanagari",system-ui,sans-serif;color:#1f2328}
 .pp-root h2{font-size:17px;margin:12px 0 6px}
 .pp-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
-.pp-form input,.pp-form button{font:inherit;padding:6px 10px;border:1px solid #d98a4c;border-radius:6px;background:#ffbb5f;color:inherit}
-.pp-form button{background:#a80f0f;color:#fff;border-color:#a80f0f}
-.pp-card{border:1px solid #d98a4c;border-radius:8px;padding:10px;background:#ffbb5f}
-.pp-card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
-.pp-card dt{font-weight:600}.pp-card dd{margin:0}
-.pp-note{margin-top:10px;font-size:12px;opacity:.9}
+.pp-form input,.pp-form button{font:inherit;padding:6px 10px;border:1px solid #d0d5dd;border-radius:4px;background:#fff;color:inherit}
+.pp-form button{background:#1d6f42;color:#fff;border-color:#1d6f42;cursor:pointer}
+.pp-sheet{border:1px solid #d0d5dd;border-radius:4px;overflow:auto;background:#fff;margin:8px 0}
+.pp-sheet table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-variant-numeric:tabular-nums}
+.pp-sheet th,.pp-sheet td{border-right:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd;padding:6px 10px;text-align:left;white-space:nowrap;vertical-align:top}
+.pp-sheet thead th{background:#eef1f5;font-weight:600}
+.pp-sheet thead tr.letters th{font-weight:500;color:#6b7280;text-align:center;font-size:11px}
+.pp-sheet th.rn,.pp-sheet td.rn{text-align:center;background:#eef1f5;color:#6b7280;min-width:34px}
+.pp-sheet td.wrap{white-space:normal;min-width:240px}
+.pp-cap{font-weight:600;margin:10px 0 0}
+.pp-note{margin:6px 0;font-size:12px;opacity:.85}
 </style>`;
+
+function sheet(headers, rows) {
+  const head = `<thead><tr class="letters"><th class="rn"></th>${headers.map((_, i) => `<th>${letter(i)}</th>`).join('')}</tr><tr><th class="rn">#</th>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>`;
+  const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v, j) => `<td${j === r.length - 1 && headers.length === 2 ? ' class="wrap"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('');
+  return `<div class="pp-sheet"><table>${head}<tbody>${body}</tbody></table></div>`;
+}
 
 function body(place) {
   const date = ST.date || todayIST();
@@ -30,24 +42,33 @@ function body(place) {
     const ms = istToMs(ST.run.date, ST.run.time);
     const mi = moonInfo(ms);
     const dt = dayTimes(ST.run.date, place);
-    const rows = [
-      ['चंद्र नक्षत्र', `${mi.nakshatra} (नक्षत्र ${mi.nakshatraNo}, चरण ${mi.pada})`],
+    const bird = birthBird(mi.nakshatraNo, mi.paksha) || '—';
+    const summary = [
+      ['जन्म-पक्षी', bird],
+      ['चंद्र नक्षत्र', `${mi.nakshatra} (नक्षत्र ${mi.nakshatraNo})`],
+      ['नक्षत्र चरण', String(mi.pada)],
       ['चंद्र राशि', RASHI_HI[mi.sign]],
       ['पक्ष और तिथि', `${mi.paksha} पक्ष, तिथि ${mi.tithiInPaksha}`],
-      ['सूर्योदय (IST)', dt ? fmtIST(dt.sunrise) : 'इस स्थान पर उपलब्ध नहीं'],
-      ['सूर्यास्त (IST)', dt ? fmtIST(dt.sunset) : 'इस स्थान पर उपलब्ध नहीं'],
+      ['सूर्योदय (IST)', dt ? fmtIST(dt.sunrise) : 'उपलब्ध नहीं'],
+      ['सूर्यास्त (IST)', dt ? fmtIST(dt.sunset) : 'उपलब्ध नहीं'],
       ['दिन की अवधि', dt ? `${Math.floor(dt.dayMin / 60)} घंटे ${dt.dayMin % 60} मिनट` : '—'],
       ['रात की अवधि', dt ? `${Math.floor(dt.nightMin / 60)} घंटे ${dt.nightMin % 60} मिनट` : '—']
     ];
-    const bb = birthBirds(mi.nakshatraNo, mi.paksha);
-    const birdRows = bb.rows.map(r => `<dt>जन्म-पक्षी (${esc(r.label)})</dt><dd>${esc(r.bird)}${r.paksha_dependent ? ' · पक्ष पर निर्भर' : ''} <a href="${esc(r.source)}" target="_blank" rel="noopener">स्रोत</a></dd>`).join('');
-    const per = dt ? fivePeriods(dt) : null;
-    const fmtP = arr => arr.map(([a, b], i) => `भाग ${i + 1}: ${fmtIST(a)}–${fmtIST(b)}`).join('<br>');
-    out = `<div class="pp-card"><dl>${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}${birdRows}</dl>
-      <p class="pp-note">${bb.conflict ? 'दोनों परंपराएँ इस नक्षत्र पर अलग पक्षी देती हैं। हर परंपरा का परिणाम ऊपर अलग दिखाया गया है; उन्हें मिलाया नहीं गया है।' : 'दोनों परंपराएँ एक ही पक्षी देती हैं।'}</p>
-      ${per ? `<div class="pp-card"><dl><dt>दिन के पाँच बराबर भाग</dt><dd>${fmtP(per.day)}</dd><dt>रात के पाँच बराबर भाग</dt><dd>${fmtP(per.night)}</dd></dl><p class="pp-note">यह एक सेकेंडरी स्रोत (Hindu-blog) की विधि है।</p></div>` : ''}
-      <p class="pp-note">स्थान: ${esc(place.name)} · ${esc(ST.run.date)} ${esc(ST.run.time)} IST</p></div>
-      <p class="pp-note">${esc(TABLES_STATUS.reason)}</p>`;
+    let periods = '';
+    if (dt) {
+      const per = fivePeriods(dt);
+      const f = t => fmtIST(t);
+      const rows = [
+        ...per.day.map(([a, b], i) => ['दिन', `भाग ${i + 1}`, f(a), f(b)]),
+        ...per.night.map(([a, b], i) => ['रात', `भाग ${i + 1}`, f(a), f(b)])
+      ];
+      periods = `<p class="pp-cap">दिन-रात के पाँच-पाँच बराबर भाग</p>${sheet(['अवधि', 'भाग', 'शुरू (IST)', 'समाप्त (IST)'], rows)}`;
+    }
+    out = `<p class="pp-cap">गणना: ${esc(ST.run.date)} ${esc(ST.run.time)} IST · ${esc(place.name)}</p>
+      ${sheet(['श्रेणी', 'मान'], summary)}
+      ${periods}
+      <p class="pp-note">${esc(TABLES_STATUS.reason)}</p>
+      <p class="pp-note">जन्म-पक्षी एक पारंपरिक तालिका पर आधारित है। अलग परंपराओं में परिणाम अलग हो सकता है। यह मार्गदर्शन है, गारंटी नहीं।</p>`;
   } else {
     out = `<p class="pp-note">तारीख़ और समय चुनकर "गणना करें" दबाएँ।</p>`;
   }
