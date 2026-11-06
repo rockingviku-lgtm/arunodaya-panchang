@@ -10,7 +10,7 @@ import { calculateVimshottariDasha } from "../../src/dasha-engine.js";
 import { nameNumbers, personal, reduce } from "../../src/numerology.js";
 import { babyName, vedicTime, shraddhaTithi, sahasraChandra } from "../../src/jyotish-calc.js";
 import { positionTable, chartFor, monthEvents, istNoon, dayLabel, validYear } from "../../src/gochar-engine.js";
-import { istToMs, fmtIST, moonInfo, dayTimes, birthBirds, fivePeriods, TABLES_STATUS } from "../../src/panchapakshi-engine.js";
+import { istToMs, fmtIST, moonInfo, dayTimes, birthBird, fivePeriods, TABLES_STATUS } from "../../src/panchapakshi-engine.js";
 import { scan, aiModerate, offtopicStep, offtopicReset, OFFTOPIC_LIMIT, OFFTOPIC_REPLY, hashIp, activeBlockFor, recordViolation, blockedPayload, isSafetyBlock, REFUSAL } from "./_moderation.js";
 
 const TZ = "Asia/Kolkata"; 
@@ -229,7 +229,7 @@ const TOOLS = [
   fn("get_vedic_time", "वैदिक समय: घड़ी के समय को घटी-पल (सूर्योदय से गिनकर) में बदलता है।", { city: CITY, date: DATE, time: S("HH:MM भारतीय समय; खाली छोड़ने पर अभी का समय") }, ["city"]),
   fn("get_shraddha_tithi", "श्राद्ध तिथि: मृत्यु की तारीख़ से मृत्यु-तिथि, अमांत-पूर्णिमांत मास, अगला वार्षिक श्राद्ध और पितृ पक्ष का श्राद्ध।", { death_date: S("मृत्यु की तारीख़ YYYY-MM-DD"), death_time: S("मृत्यु का समय HH:MM; पता न हो तो खाली"), city: S("श्राद्ध करने का शहर (वैकल्पिक, भारत)") }, ["death_date"]),
   fn("get_sahasra_chandra", "1000 चंद्रोदय (सहस्र चंद्र दर्शन): जन्म के बाद 1000वीं पूर्णिमा की तारीख़।", { dob: S("जन्म तारीख़ YYYY-MM-DD"), time: S("जन्म समय HH:MM; खाली हो तो 12:00") }, ["dob"]),
-  fn("get_panchapakshi", "पंचपक्षी: किसी तारीख़ और समय (IST) का चंद्र नक्षत्र, चरण, पक्ष, तिथि, सूर्योदय-सूर्यास्त, दोनों परंपराओं के जन्म-पक्षी (अलग-अलग दिखाएँ, मिलाएँ नहीं) और दिन के भाग। गतिविधि-क्रम का स्रोत नहीं है; जवाब में यह साफ़ बताएँ।", { city: CITY, date: DATE, time: S("HH:MM (IST), खाली छोड़ने पर 12:00") }, []),
+  fn("get_panchapakshi", "पंचपक्षी: किसी तारीख़ और समय (IST) का चंद्र नक्षत्र, चरण, पक्ष, तिथि, सूर्योदय-सूर्यास्त, जन्म-पक्षी और दिन के भाग। गतिविधि-क्रम उपलब्ध नहीं है; जवाब में यह साफ़ बताएँ। जन्म-पक्षी को एक पारंपरिक तालिका का परिणाम बताएँ, गारंटी नहीं।", { city: CITY, date: DATE, time: S("HH:MM (IST), खाली छोड़ने पर 12:00") }, []),
   fn("get_gochar", "2026–2100 के बीच किसी तारीख़ की ग्रह-गोचर स्थिति: हर ग्रह की राशि, अंश, नक्षत्र, वक्री/मार्गी, वर्गोत्तम; लग्न और कुंडली D1 (राशि) तथा D9 (नवांश) के साथ; और उस महीने की ग्रह-घटनाएँ व फलादेश में अच्छी-कमज़ोर राशियाँ। शहर न हो तो लखनऊ।", { city: CITY, date: DATE }, []),
   fn("get_numerology", "अंक ज्योतिष: नाम के अंक और जन्म तारीख़ से मूलांक, भाग्यांक, आज का व्यक्तिगत अंक।", { name: S("पूरा नाम (वैकल्पिक)"), dob: S("जन्म तारीख़ YYYY-MM-DD (वैकल्पिक)") }),
 ];
@@ -250,8 +250,7 @@ async function runTool(name, a = {}, geo) {
           place: pl.name, date, time, nakshatra: `${mi.nakshatra} (चरण ${mi.pada})`, moon_rashi: RASHI_HI[mi.sign],
           paksha: `${mi.paksha} पक्ष, तिथि ${mi.tithiInPaksha}`,
           sunrise_ist: dt ? fmtIST(dt.sunrise) : null, sunset_ist: dt ? fmtIST(dt.sunset) : null,
-          birth_birds: birthBirds(mi.nakshatraNo, mi.paksha).rows.map((r) => `${r.label}: ${r.bird}${r.paksha_dependent ? " (पक्ष पर निर्भर)" : ""}`),
-          birth_birds_conflict: birthBirds(mi.nakshatraNo, mi.paksha).conflict,
+          birth_bird: birthBird(mi.nakshatraNo, mi.paksha),
           day_periods_ist: dt ? fivePeriods(dt).day.map(([a]) => fmtIST(a)) : null,
           activity_note: TABLES_STATUS.reason
         };

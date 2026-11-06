@@ -189,10 +189,9 @@ const istText = (ms) => new Date(ms).toLocaleString('hi-IN', { timeZone: 'Asia/K
 
 // चैट को ब्लॉक-संदेश भेजने के लिए
 export function blockedPayload(block) {
-  const appeal = '/appeal.html?block=' + block.id;
   return {
-    blocked: true, block_id: block.id, reason: block.reason, expires_at: new Date(block.expires_at).toISOString(), appeal_url: appeal,
-    reply: `आपकी चैट अस्थायी रूप से ब्लॉक है।\nब्लॉक आईडी: ${block.id}\nकारण: ${block.reason}\nब्लॉक कब तक: ${istText(block.expires_at)} (भारतीय समय)\nसमय पूरा होने पर यह अपने-आप खुल जाएगा।\nअपील के लिए: ${appeal}`
+    blocked: true, block_id: block.id, reason: block.reason, expires_at: new Date(block.expires_at).toISOString(),
+    reply: `आपकी चैट अस्थायी रूप से ब्लॉक है।\nब्लॉक आईडी: ${block.id}\nकारण: ${block.reason}\nब्लॉक कब तक: ${istText(block.expires_at)} (भारतीय समय)\nसमय पूरा होने पर यह अपने-आप खुल जाएगा।`
   };
 }
 
