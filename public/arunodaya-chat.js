@@ -200,14 +200,10 @@
       var data = await r.json();
       if (data.ctx) ctx = data.ctx;
       if (data.blocked) {
-        // ब्लॉक: आईडी, कारण, समय और अपील का लिंक दिखाओ; इस सत्र में इनपुट बंद
+        // ब्लॉक: आईडी, कारण और समय दिखाओ; इस सत्र में इनपुट बंद
         history.pop();
         wait.textContent = data.reply;
         wait.style.whiteSpace = "pre-line";
-        var al = document.createElement("a");
-        al.href = data.appeal_url; al.textContent = "अपील करें";
-        al.style.cssText = "display:inline-block;margin-top:8px;color:var(--ap-acc);font-weight:700";
-        wait.appendChild(document.createElement("br")); wait.appendChild(al);
         input.disabled = true; input.placeholder = "चैट ब्लॉक है";
         busy = false; return;
       }
