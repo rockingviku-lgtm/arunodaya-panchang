@@ -1,12 +1,13 @@
 // "पंचपक्षी शास्त्र" टूल (#/panchapakshi): जन्म-पक्षी, चंद्र नक्षत्र, पक्ष, तिथि, सूर्योदय-सूर्यास्त और दिन-रात के भाग; Excel-जैसी शीट में।
 import { istToMs, fmtIST, moonInfo, dayTimes, birthBird, fivePeriods, TABLES_STATUS } from './panchapakshi-engine.js';
+import { BIRDS, ACTIVITY, PROFILES, timetable, currentFor } from './panchapakshi-schedule.js';
 import { RASHI_HI } from './graha-engine.js';
 import { DEFAULT_PLACE } from './festival-calendar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const letter = i => String.fromCharCode(65 + i);
 export const PANCHAPAKSHI_TITLES = { panchapakshi: 'पंचपक्षी शास्त्र' };
-const TOOL_INFO = { panchapakshi: ['पंचपक्षी शास्त्र', 'जन्म-पक्षी, नक्षत्र, पक्ष, दिन-रात के भाग'] };
+const TOOL_INFO = { panchapakshi: ['पंचपक्षी शास्त्र', 'जन्म-पक्षी, नक्षत्र, पक्ष, दिन-रात की गतिविधि-सारणी'] };
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 const ST = { date: '', time: '18:30', run: null };
@@ -64,9 +65,25 @@ function body(place) {
       ];
       periods = `<p class="pp-cap">दिन-रात के पाँच-पाँच बराबर भाग</p>${sheet(['अवधि', 'भाग', 'शुरू (IST)', 'समाप्त (IST)'], rows)}`;
     }
+    // गतिविधि-सारणी: शुक्ल पक्ष में VedAstro भाग 5 (असत्यापित); कृष्ण पक्ष में असमर्थित
+    const profile = mi.paksha === 'शुक्ल' ? PROFILES['vedastro-part5-bright'] : PROFILES['vedastro-part6-dark'];
+    const tt = timetable(ST.run.date, place, profile);
+    let sched = '';
+    if (tt.supported) {
+      const rows = tt.slots.map(sl => [`${sl.part} ${sl.yama}`, `${fmtIST(sl.start)}–${fmtIST(sl.end)}`, ...sl.activities.map(a => a.activity)]);
+      const cur = currentFor(ms, tt, bird);
+      const curHtml = cur
+        ? `<p class="pp-cap">जन्म-समय पर ${esc(bird)} की गतिविधि</p>${sheet(['पक्षी', 'अभी', 'शुरू (IST)', 'समाप्त (IST)', 'शेष (मिनट)', 'अगली'], [[cur.bird, cur.activity, fmtIST(cur.start), fmtIST(cur.end), String(cur.remainingMin), cur.next ? cur.next.activity : '—']])}`
+        : `<p class="pp-note">जन्म-समय इस तारीख़ की सारणी के भीतर नहीं है।</p>`;
+      sched = `<p class="pp-cap">दिन-रात की गतिविधि-सारणी (शुक्ल पक्ष, सत्यापन बाकी)</p>${sheet(['भाग', 'समय (IST)', ...BIRDS], rows)}${curHtml}
+`;
+    } else {
+      sched = `<p class="pp-cap">गतिविधि-सारणी उपलब्ध नहीं</p><p class="pp-note">इस पक्ष की गतिविधि-सारणी अभी सत्यापित नहीं है।</p>`;
+    }
     out = `<p class="pp-cap">गणना: ${esc(ST.run.date)} ${esc(ST.run.time)} IST · ${esc(place.name)}</p>
       ${sheet(['श्रेणी', 'मान'], summary)}
       ${periods}
+      ${sched}
       <p class="pp-note">${esc(TABLES_STATUS.reason)}</p>
       <p class="pp-note">जन्म-पक्षी एक पारंपरिक तालिका पर आधारित है। अलग परंपराओं में परिणाम अलग हो सकता है। यह मार्गदर्शन है, गारंटी नहीं।</p>`;
   } else {
