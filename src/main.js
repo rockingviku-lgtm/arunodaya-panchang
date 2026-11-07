@@ -9,6 +9,7 @@ import {
 } from "./kundli.js";
 
 import { addKundliPdfButton } from "./kundli-pdf.js";
+import { parseBirthDateISO } from "./birth-date.js";
 
 import {
   calculatePanchang,
@@ -452,8 +453,8 @@ function renderKundli() {
       <form id="k-form">
         <div class="form-grid">
           <label>नाम (वैकल्पिक)<input id="k-name" placeholder="अपना नाम"></label>
-          <label>जन्म तारीख (DD-MM-YYYY)
-            <input id="k-date" type="text" inputmode="numeric" placeholder="08-01-2002" maxlength="10" pattern="[0-9]{2}-[0-9]{2}-[0-9]{4}" autocomplete="off" required>
+          <label>जन्म तारीख़ (दिन/महीना/साल)
+            <input id="k-date" type="date" min="1900-01-01" max="2100-12-31" autocomplete="off" required>
           </label>
           <label>जन्म समय<input id="k-time" type="time" value="12:00" required></label>
           <label>समय क्षेत्र
@@ -843,23 +844,11 @@ document.addEventListener("submit", async (e) => {
     </div>`;
 
   try {
-    const value = $("#k-date").value.trim();
-    const match = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-    if (!match) throw new Error("जन्म तारीख DD-MM-YYYY में लिखें, जैसे 08-01-2002।");
-
-    const [, dd, mm, yyyy] = match;
-    const day = Number(dd);
-    const month = Number(mm);
-    const year = Number(yyyy);
-    const check = new Date(Date.UTC(year, month - 1, day));
-
-    if (
-      check.getUTCFullYear() !== year ||
-      check.getUTCMonth() !== month - 1 ||
-      check.getUTCDate() !== day
-    ) {
-      throw new Error("जन्म तारीख सही नहीं है।");
-    }
+    const bd = parseBirthDateISO($("#k-date").value);
+    if (!bd.ok) throw new Error(bd.error);
+    const yyyy = String(bd.year);
+    const mm = String(bd.month).padStart(2, "0");
+    const dd = String(bd.day).padStart(2, "0");
 
     const time = $("#k-time").value;
     if (!/^\d{2}:\d{2}$/.test(time)) throw new Error("जन्म समय सही भरें।");

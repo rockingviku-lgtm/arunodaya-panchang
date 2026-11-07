@@ -3,6 +3,7 @@ import { istToMs, fmtIST, moonInfo, dayTimes, birthBird, fivePeriods, TABLES_STA
 import { BIRDS, ACTIVITY, PROFILES, timetable, currentFor } from './panchapakshi-schedule.js';
 import { RASHI_HI } from './graha-engine.js';
 import { DEFAULT_PLACE } from './festival-calendar.js';
+import { birthStateFor, birthStateHtml, BIRTH_STATE_CSS } from './panchapakshi-birth-state.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const letter = i => String.fromCharCode(65 + i);
@@ -10,7 +11,9 @@ export const PANCHAPAKSHI_TITLES = { panchapakshi: 'पंचपक्षी श
 const TOOL_INFO = { panchapakshi: ['पंचपक्षी शास्त्र', 'जन्म-पक्षी, नक्षत्र, पक्ष, दिन-रात की गतिविधि-सारणी'] };
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
-const ST = { date: '', time: '18:30', run: null };
+const ST = { date: '', time: '12:00', run: null };
+// जन्म-समय की स्थिति का अलग फ़ॉर्म (ऊपर वाले "गणना" फ़ॉर्म से स्वतंत्र)
+const BS = { date: '', time: '12:00', run: null };
 
 const CSS = `<style>
 .pp-root{font:14px/1.5 "Noto Sans Devanagari",system-ui,sans-serif;color:#1f2328}
@@ -73,7 +76,7 @@ function body(place) {
       const rows = tt.slots.map(sl => [`${sl.part} ${sl.yama}`, `${fmtIST(sl.start)}–${fmtIST(sl.end)}`, ...sl.activities.map(a => a.activity)]);
       const cur = currentFor(ms, tt, bird);
       const curHtml = cur
-        ? `<p class="pp-cap">जन्म-समय पर ${esc(bird)} की गतिविधि</p>${sheet(['पक्षी', 'अभी', 'शुरू (IST)', 'समाप्त (IST)', 'शेष (मिनट)', 'अगली'], [[cur.bird, cur.activity, fmtIST(cur.start), fmtIST(cur.end), String(cur.remainingMin), cur.next ? cur.next.activity : '—']])}`
+        ? `<p class="pp-cap">चुने गए समय पर ${esc(bird)} की गतिविधि</p>${sheet(['पक्षी', 'अभी', 'शुरू (IST)', 'समाप्त (IST)', 'शेष (मिनट)', 'अगली'], [[cur.bird, cur.activity, fmtIST(cur.start), fmtIST(cur.end), String(cur.remainingMin), cur.next ? cur.next.activity : '—']])}`
         : `<p class="pp-note">जन्म-समय इस तारीख़ की सारणी के भीतर नहीं है।</p>`;
       sched = `<p class="pp-cap">दिन-रात की गतिविधि-सारणी (शुक्ल पक्ष, सत्यापन बाकी)</p>${sheet(['भाग', 'समय (IST)', ...BIRDS], rows)}${curHtml}
 `;
@@ -89,7 +92,14 @@ function body(place) {
   } else {
     out = `<p class="pp-note">तारीख़ और समय चुनकर "गणना करें" दबाएँ।</p>`;
   }
-  return `${CSS}<div class="pp-root"><h2>पंचपक्षी शास्त्र</h2>${form}${out}<p class="pp-note">सभी समय भारतीय समय (IST) में। स्थान: ${esc(place.name)}।</p></div>`;
+  const bsForm = `<div class="pp-form"><input type="date" data-pb-d value="${esc(BS.date)}" aria-label="जन्म तारीख़"><input type="time" data-pb-t value="${esc(BS.time)}" aria-label="जन्म समय (IST)"><button type="button" data-pb-run>जन्म-स्थिति देखें</button></div>`;
+  let bsOut = `<p class="pp-note">जन्म तारीख़ और समय चुनकर "जन्म-स्थिति देखें" दबाएँ।</p>`;
+  if (BS.run) {
+    const s = birthStateFor(BS.run.date, BS.run.time, place);
+    bsOut = s.error ? `<p class="pp-note">${esc(s.error)}</p>` : birthStateHtml(s);
+  }
+  const birthSection = `<style>${BIRTH_STATE_CSS}</style><p class="pp-cap">जन्म-समय की पंचपक्षी स्थिति</p>${bsForm}${bsOut}`;
+  return `${CSS}<div class="pp-root"><h2>पंचपक्षी शास्त्र</h2>${form}${out}${birthSection}<p class="pp-note">सभी समय भारतीय समय (IST) में। स्थान: ${esc(place.name)}।</p></div>`;
 }
 
 export function makePanchapakshiPages({ refresh, getPlace }) {
@@ -98,6 +108,12 @@ export function makePanchapakshiPages({ refresh, getPlace }) {
       const d = root.querySelector('[data-pp-d]'), t = root.querySelector('[data-pp-t]');
       ST.date = d ? d.value : ST.date; ST.time = t ? t.value : ST.time;
       ST.run = { date: ST.date || todayIST(), time: ST.time || '12:00' };
+      refresh();
+    }));
+    root.querySelectorAll('[data-pb-run]').forEach(b => b.addEventListener('click', () => {
+      const d = root.querySelector('[data-pb-d]'), t = root.querySelector('[data-pb-t]');
+      BS.date = d ? d.value : BS.date; BS.time = t ? t.value : BS.time;
+      BS.run = { date: BS.date, time: BS.time };
       refresh();
     }));
   };

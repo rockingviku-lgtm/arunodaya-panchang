@@ -3,6 +3,7 @@
 // नियम: निरयण (लाहिरी), संपूर्ण-राशि भाव, मध्यम राहु। फल-नियम परंपरा के अनुसार हैं; ज्योतिषियों में मतभेद रहता है।
 import { grahaPositions, ascendantSidereal, RASHI_HI, GRAHA_ORDER } from './graha-engine.js';
 import { NAKSHATRAS } from './festival-calendar.js';
+import { parseBirthDateISO } from './birth-date.js';
 
 const DAY = 86400000;
 const NAK_LORD = ['केतु', 'शुक्र', 'सूर्य', 'चंद्र', 'मंगल', 'राहु', 'गुरु', 'शनि', 'बुध'];
@@ -283,11 +284,7 @@ export function mountKundliDoshas(container, opts = {}) {
     <div>
       <label>
   जन्म तारीख़ (दिन/महीना/साल)
-  <input id="kd-date" type="text"
-    inputmode="numeric"
-    placeholder="DD/MM/YYYY"
-    maxlength="10"
-    ${inp}>
+  <input id="kd-date" type="date" min="1900-01-01" max="2100-12-31" ${inp}>
 </label>
       <label>जन्म समय<input id="kd-time" type="time" value="12:00" ${inp}></label>
       <label>जन्म स्थान (शहर)<input id="kd-city" value="Lucknow, India" placeholder="जैसे Lucknow, India" ${inp}></label>
@@ -314,28 +311,13 @@ export function mountKundliDoshas(container, opts = {}) {
 const time = $('#kd-time').value || '12:00';
 const city = $('#kd-city').value.trim();
 
-const match = dateText.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-
-if (!match) {
-  msg('जन्म तारीख़ DD/MM/YYYY में लिखें। उदाहरण: 08/01/2002');
+const bd = parseBirthDateISO(dateText);
+if (!bd.ok) {
+  msg(bd.error);
   return;
 }
 
-const day = Number(match[1]);
-const month = Number(match[2]);
-const year = Number(match[3]);
-const check = new Date(year, month - 1, day);
-
-if (
-  check.getFullYear() !== year ||
-  check.getMonth() !== month - 1 ||
-  check.getDate() !== day
-) {
-  msg('कृपया सही जन्म तारीख़ लिखें।');
-  return;
-}
-
-const date = `${match[3]}-${match[2]}-${match[1]}`;
+const date = `${String(bd.day).padStart(2, '0')}-${String(bd.month).padStart(2, '0')}-${bd.year}`;
     try {
       let place = state.place && city === state.place.name ? state.place : null;
       if (!place) {
