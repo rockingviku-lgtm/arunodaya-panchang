@@ -1,128 +1,197 @@
-// "ग्रह गोचर" पेज (#/gochar): चुनी तारीख़ की ग्रह-स्थिति (कुंडली-चार्ट सहित), महीने के गोचर,
-// साल भर के राशि-परिवर्तन, वक्री-मार्गी और वर्गोत्तम। साल 2026 से 2099 तक। हिसाब gochar-calc.js में है।
-// pages.js इसे import करता है; होम के टूल-ग्रिड में कार्ड भी यहीं से जुड़ता है।
-import { todayIST } from './festival-calendar.js';
-import { RASHI_HI } from './graha-engine.js';
-import { GOCHAR_MIN, GOCHAR_MAX, MONTHS_HI, istMs, istParts, fmtDate, fmtDT, daysInMonth, positionsAt, yearData, monthEvents } from './gochar-calc.js';
+// "गोचर और फलादेश" पेज (#/gochar): 2026–2100 की Excel-जैसी शीट (वर्ष चुनकर): वार्षिक फलादेश, मासिक कुंडली-ग्रह, ग्रह-घटनाएँ, और उपयोग-विधि।
+// हर पंक्ति पर टैप करने से D1 राशि और D9 नवांश कुंडली दिखती है। रंग site के रंगों से मिलते हैं और हर बार बदल सकते हैं।
+// pages.js इसे import करता है; होम के टूल-ग्रिड में कार्ड भी यहीं से जुड़ता है। हिसाब gochar-data.js और gochar-engine.js में है।
+import { buildGocharData, SHEET_YEARS } from './gochar-data.js';
+import { chartFor, istNoon } from './gochar-engine.js';
+import { DEFAULT_PLACE } from './festival-calendar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-export const GOCHAR_TITLES = { gochar: 'ग्रह गोचर' };
-const TOOL_INFO = { gochar: ['ग्रह गोचर', 'वक्री-मार्गी, वर्गोत्तम और महीने की ग्रह-स्थिति'] };
+const letter = i => { let s = '', n = i + 1; while (n) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
 
-const t0 = istParts(Date.now()), inRange = t0.y >= GOCHAR_MIN && t0.y <= GOCHAR_MAX;
-export const GC_STATE = inRange ? { y: t0.y, m: t0.m, d: t0.d } : { y: GOCHAR_MIN, m: 1, d: 1 };
+export const GOCHAR_TITLES = { gochar: 'गोचर और फलादेश' };
+const TOOL_INFO = { gochar: ['गोचर, फलादेश और कुंडली', '2026–2100: ग्रह-गोचर, D1/D9 कुंडली, वक्री-मार्गी, वर्गोत्तम'] };
+
+// site के रंग-परिवार (maroon header, cream band, orange panel); हर बार एक चुना जाता है और बटन से बदलता है
+const PALETTES = [
+  { hd: '#a80f0f', ht: '#ffffff', band: '#ffd79a', accent: '#8b1a00' },
+  { hd: '#d98a4c', ht: '#3a1500', band: '#ffc874', accent: '#8b1a00' },
+  { hd: '#8b1a00', ht: '#ffffff', band: '#ffd79a', accent: '#a80f0f' },
+  { hd: '#5c5f63', ht: '#ffffff', band: '#ffe0b0', accent: '#8b1a00' },
+  { hd: '#9f2b00', ht: '#ffffff', band: '#ffb95c', accent: '#111111' }
+];
+
+// स्थिति (पेज खुला रहने तक)
+const ST = { tab: 'yearly', year: '2026', q: '', sel: 0, pal: Math.floor(Math.random() * PALETTES.length), cache: {}, busy: null, err: false };
+
+const SHEETS = {
+  yearly: { cols: [['वर्ष', 'year'], ['राशि', 'rashi'], ['समग्र', 'overall', 'star'], ['करियर', 'career', 'star'], ['धन', 'money', 'star'], ['प्रेम', 'love', 'star'], ['स्वास्थ्य', 'health', 'star'], ['मुख्य नोट', 'note', 'wrap']], chart: r => r.chart, title: r => `कुंडली: ${r.year} (${r.rashi}, 1 जनवरी)` },
+  monthly: { cols: [['महीना', 'month'], ['लग्न (D1)', 'lagna'], ['लग्न (D9)', 'lagna9'], ['सूर्य', 'sun'], ['चंद्र', 'moon'], ['मंगल', 'mars'], ['बुध', 'mercury'], ['गुरु', 'jupiter'], ['शुक्र', 'venus'], ['शनि', 'saturn'], ['राहु', 'rahu'], ['केतु', 'ketu'], ['वक्री', 'retro', 'retro'], ['वर्गोत्तम', 'vargottam', 'wrap'], ['सबसे अच्छी राशि', 'best']], chart: r => r.chart, title: r => `कुंडली: ${r.month}` },
+  events: { cols: [['वर्ष', 'year'], ['माह', 'month'], ['तारीख़', 'date'], ['ग्रह', 'planet'], ['प्रकार', 'kind'], ['घटना', 'text', 'wrap'], ['राशि', 'rashi'], ['फलादेश (माह)', 'phal', 'star']], chart: r => r.chart, title: r => `कुंडली: ${r.dayLabel} · ${r.planet}` }
+};
+
+// ---------- चार्ट (उत्तर-भारतीय हीरा) ----------
+const FRAME = 'M5 5 L295 295 M295 5 L5 295 M150 5 L295 150 L150 295 L5 150 Z';
+const CENTERS = [[150, 45], [78, 38], [38, 78], [45, 150], [38, 222], [78, 262], [150, 255], [222, 262], [262, 222], [255, 150], [262, 78], [222, 38]];
+const RASHI = ['मेष', 'वृषभ', 'मिथुन', 'कर्क', 'सिंह', 'कन्या', 'तुला', 'वृश्चिक', 'धनु', 'मकर', 'कुंभ', 'मीन'];
+function svgChart(title, asc, pl) {
+  const by = Array.from({ length: 12 }, () => []);
+  pl.forEach(p => by[(p.sign - asc + 12) % 12].push(p.short));
+  const cells = CENTERS.map(([x, y], i) => {
+    const sg = (asc + i) % 12, mk = i === 0 ? '<tspan class="gc-la">लग्न </tspan>' : '';
+    return `<text x="${x}" y="${y - 9}" class="gc-sg">${mk}${sg + 1}</text><text x="${x}" y="${y + 10}" class="gc-pl">${esc(by[i].join(' '))}</text>`;
+  }).join('');
+  return `<figure class="gc-fig"><figcaption>${esc(title)}</figcaption><svg viewBox="0 0 300 300" role="img" aria-label="${esc(title)}"><rect x="5" y="5" width="290" height="290" class="gc-fr"/><path d="${FRAME}" class="gc-ln"/>${cells}</svg></figure>`;
+}
+function chartBlock(c, title, note) {
+  const d1 = c.p.map(p => ({ short: p[0], sign: p[1] })), d9 = c.p.map(p => ({ short: p[0], sign: p[2] }));
+  return `<div class="gc-kp"><h3>${esc(title)}</h3><div class="gc-charts">${svgChart('D1 राशि · लग्न ' + RASHI[c.a], c.a, d1)}${svgChart('D9 नवांश · लग्न ' + RASHI[c.a9], c.a9, d9)}</div>${note ? `<p class="gc-note">${esc(note)}</p>` : ''}</div>`;
+}
+
+// ---------- शीट ----------
+function rowsOf(sheet, data) {
+  const yr = ST.year, q = ST.q.trim().toLowerCase();
+  return data[sheet].filter(r => (!yr || String(r.year ?? r.month).startsWith(yr)) && (!q || Object.values(r).join(' ').toLowerCase().includes(q)));
+}
+function sheetHtml(data) {
+  const sh = SHEETS[ST.tab], items = rowsOf(ST.tab, data);
+  if (ST.sel >= items.length) ST.sel = 0;
+  const head = `<thead><tr class="letters"><th class="rn"></th>${sh.cols.map((_, i) => `<th>${letter(i)}</th>`).join('')}</tr><tr class="names"><th class="rn">#</th>${sh.cols.map(c => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
+  const body = items.map((r, i) => `<tr data-gr="${i}"${i === ST.sel ? ' class="gc-pick"' : ''}><td class="rn">${i + 1}</td>${sh.cols.map(([, k, kind]) => {
+    const v = esc(r[k] ?? '—');
+    if (kind === 'star') return `<td class="gc-star">${v}</td>`;
+    if (kind === 'wrap') return `<td class="gc-wrap">${v}</td>`;
+    if (kind === 'retro') return `<td class="gc-retro">${r[k] && r[k] !== '—' ? v : '—'}</td>`;
+    return `<td>${v}</td>`;
+  }).join('')}</tr>`).join('');
+  const table = `<div class="gc-sheet" role="region" aria-label="तालिका" tabindex="0"><table>${head}<tbody>${body || `<tr><td class="gc-empty" colspan="${sh.cols.length + 1}">कोई पंक्ति नहीं।</td></tr>`}</tbody></table></div>`;
+  let panel = '';
+  if (items.length) {
+    const r = items[ST.sel];
+    const note = ST.tab === 'events' ? r.text : 'दोपहर 12 बजे IST की स्थिति; स्थान: ' + data.place;
+    panel = chartBlock(sh.chart(r), sh.title(r), note);
+  }
+  return { panel, table, count: `${items.length} पंक्तियाँ` };
+}
 
 const CSS = `<style>
-.gc-f{display:flex;flex-wrap:wrap;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line,#ddd)}
-.gc-f label{display:flex;flex-direction:column;gap:3px;font-size:12px;opacity:.9}
-.gc-f select,.gc-f button{font:inherit;padding:6px 10px;border:1px solid var(--btnbd,#bbb);background:var(--btnbg,#fff);color:var(--dtxt,#222)}
-.gc-f button{font-weight:700;color:var(--btntx,#a80f0f);cursor:pointer;align-self:flex-end}
-.gc-chart{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,minmax(72px,auto));max-width:440px;margin:12px auto;border:1px solid var(--line,#999)}
-.gc-c{border:1px solid var(--line,#999);padding:3px 5px;font-size:13px;line-height:1.35;min-width:0}
-.gc-c small{display:block;font-size:10.5px;opacity:.6}
-.gc-c b{font-weight:700;margin-right:6px;white-space:nowrap;color:var(--dacc,#b8650b)}
-.gc-c b.r{color:#c0392b}
-.gc-mid{grid-area:2/2/4/4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:13px;border:1px solid var(--line,#999)}
-.gc-mid strong{font-size:15px}
-.gc-leg{font-size:12px;opacity:.85;padding:0 14px 10px}
-.gc-t{width:100%;border-collapse:collapse;font-size:13.5px}
-.gc-t th{text-align:left;padding:6px 10px;background:var(--dhead,#5c5f63);color:var(--dheadtx,#fff);font-weight:600;white-space:nowrap}
-.gc-t td{padding:6px 10px;border-bottom:1px solid var(--line,#ddd);vertical-align:top}
-.gc-w{overflow-x:auto}
-.gc-tag{display:inline-block;padding:1px 7px;border:1px solid currentColor;border-radius:10px;font-size:11.5px;margin-left:4px;white-space:nowrap}
-.gc-tag.r{color:#c0392b}.gc-rt{color:#c0392b}.gc-tag.v{color:var(--dacc,#b8650b)}
-.gc-ev{display:flex;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line,#ddd);font-size:13.5px}.gc-ev>span:first-child{flex:none;min-width:150px;opacity:.8}
-.gc-d{border-bottom:1px solid var(--line,#ddd)}.gc-d summary{cursor:pointer;padding:8px 14px;font-weight:700}.gc-d>div{padding:0 14px 8px;font-size:13.5px}.gc-d p{margin:3px 0}
+.gc-root{background:var(--gc-panel,#ffbb5f);color:var(--gc-ink,#3a1a00);font:14px/1.45 "Noto Sans Devanagari",system-ui,sans-serif}
+.gc-root h2{font-size:17px;margin:12px 0 6px}
+.gc-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.gc-tools button,.gc-tools select,.gc-tools input{font:inherit;padding:6px 10px;border:1px solid var(--gc-line,#d98a4c);border-radius:6px;background:var(--gc-panel,#ffbb5f);color:inherit;min-width:0}
+.gc-tools button[aria-pressed="true"]{background:var(--gc-hd,#a80f0f);color:var(--gc-ht,#fff);border-color:var(--gc-hd,#a80f0f)}
+.gc-tools input[type=search]{flex:1 1 180px}
+.gc-count{font-size:12px;opacity:.8;font-variant-numeric:tabular-nums;margin:4px 0}
+.gc-sheet{border:1px solid var(--gc-line,#d98a4c);border-radius:6px;overflow:auto;max-height:62vh;background:var(--gc-panel,#ffbb5f)}
+.gc-sheet table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-variant-numeric:tabular-nums}
+.gc-sheet th,.gc-sheet td{border-right:1px solid var(--gc-line,#d98a4c);border-bottom:1px solid var(--gc-line,#d98a4c);padding:6px 9px;text-align:left;white-space:nowrap;vertical-align:top}
+.gc-sheet thead th{position:sticky;top:0;z-index:2;background:var(--gc-hd,#a80f0f);color:var(--gc-ht,#fff);font-weight:600}
+.gc-sheet thead tr.letters th{top:0;font-weight:500;font-size:11px;text-align:center;opacity:.8;padding:2px 6px}
+.gc-sheet thead tr.names th{top:24px}
+.gc-sheet th.rn,.gc-sheet td.rn{position:sticky;left:0;z-index:1;text-align:center;min-width:38px;background:var(--gc-band,#ffd79a);color:var(--gc-ink,#3a1a00)}
+.gc-sheet thead th.rn{z-index:3;background:var(--gc-hd,#a80f0f);color:var(--gc-ht,#fff)}
+.gc-sheet tbody tr:nth-child(even) td{background:var(--gc-band,#ffd79a)}
+.gc-sheet tbody tr:nth-child(even) td.rn{background:var(--gc-band,#ffd79a)}
+.gc-sheet tbody tr:hover td{background:#fff1c9}
+.gc-sheet tbody tr.gc-pick td{background:#fff1c9;font-weight:600}
+.gc-sheet tbody tr[data-gr]{cursor:pointer}
+.gc-sheet td.gc-wrap{white-space:normal;min-width:240px;max-width:380px}
+.gc-sheet td.gc-star{color:var(--gc-accent,#8b1a00);font-weight:700;letter-spacing:.5px}
+.gc-sheet td.gc-retro{color:#a80f0f;font-weight:700}
+.gc-empty{text-align:center;padding:16px}
+.gc-kp{border:1px solid var(--gc-line,#d98a4c);border-radius:8px;padding:10px;margin:10px 0;background:var(--gc-panel,#ffbb5f)}
+.gc-kp h3{font-size:15px;margin:0 0 8px}
+.gc-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.gc-fig{margin:0}.gc-fig figcaption{font-weight:600;font-size:13px;margin-bottom:4px}
+.gc-fig svg{width:100%;max-width:260px;height:auto;display:block;color:var(--gc-ink,#3a1a00)}
+.gc-fr,.gc-ln{fill:none;stroke:currentColor;stroke-width:2}
+.gc-sg{font-size:13px;fill:currentColor;opacity:.65;text-anchor:middle}
+.gc-la{font-size:10px}
+.gc-pl{font-size:16px;font-weight:700;fill:var(--gc-accent,#8b1a00);text-anchor:middle}
+.gc-note{margin:8px 0 0;font-size:12px;opacity:.85}
+.gc-load{padding:14px;opacity:.9}
+.gc-guide li{margin:8px 0}
+.gc-guide li b{color:var(--gc-accent,#8b1a00)}
 </style>`;
 
-const POS = { 11: [1, 1], 0: [1, 2], 1: [1, 3], 2: [1, 4], 3: [2, 4], 4: [3, 4], 5: [4, 4], 6: [4, 3], 7: [4, 2], 8: [4, 1], 9: [3, 1], 10: [2, 1] }; // राशि → (पंक्ति, स्तंभ): दक्षिण भारतीय शैली
+function paletteVars() {
+  const p = PALETTES[ST.pal];
+  return `--gc-hd:${p.hd};--gc-ht:${p.ht};--gc-band:${p.band};--gc-accent:${p.accent};`;
+}
 
-function chart(pos, label) {
-  const by = {}; pos.forEach(p => (by[p.sign] = by[p.sign] || []).push(p));
-  let h = '<div class="gc-chart" role="img" aria-label="ग्रह-स्थिति चार्ट">';
-  for (let s = 0; s < 12; s++) {
-    const [r, c] = POS[s];
-    h += `<div class="gc-c" style="grid-area:${r}/${c}"><small>${RASHI_HI[s]}</small>${(by[s] || []).map(p => `<b class="${p.retro && p.key !== 'rahu' && p.key !== 'ketu' ? 'r' : ''}">${esc(p.short)}${p.retro && p.key !== 'rahu' && p.key !== 'ketu' ? '(व)' : ''}${p.vargottama ? '*' : ''}</b>`).join('')}</div>`;
+const keyOf = (y, place) => `${y}|${place.name}`;
+
+// उपयोग-विधि टैब: चरण, और एक असली उदाहरण कुंडली (16 दिसंबर 2026, दोपहर 12 बजे IST)
+function guideHtml(place) {
+  const c = chartFor(istNoon(2026, 12, 16), place.lat, place.lon);
+  const cc = { a: c.ascSign, a9: c.asc9, p: c.planets.map(q => [q.short, q.sign, q.d9]) };
+  const steps = [
+    ['होम पेज खोलें', 'होम पर "गोचर, फलादेश और कुंडली" कार्ड पर टैप करें। पेज खुलते ही 2026 की शीट दिखेगी।'],
+    ['टैब चुनें', '"वार्षिक फलादेश": हर राशि का साल भर का फल (★ 5 में से) और करियर, धन, प्रेम, स्वास्थ्य के स्तर। "मासिक कुंडली और ग्रह": हर महीने की पहली तारीख़, दोपहर 12 बजे IST की ग्रह-स्थिति। "ग्रह-घटनाएँ": राशि-परिवर्तन, वक्री/मार्गी और वर्गोत्तम की तारीख़ें।'],
+    ['वर्ष चुनें', 'ऊपर के ड्रॉपडाउन से 2026 से 2100 तक कोई भी साल चुनें। हर साल का डेटा अलग बनता है, इसलिए पहली बार चुनने पर कुछ सेकंड लगते हैं।'],
+    ['खोजें', 'खोज बॉक्स में राशि या ग्रह का नाम लिखें, जैसे "तुला" या "शनि"; तो सिर्फ़ वही पंक्तियाँ रहेंगी।'],
+    ['पंक्ति पर टैप करें', 'किसी भी पंक्ति पर टैप करते ही नीचे उस क्षण की D1 (राशि) और D9 (नवांश) कुंडली बनती है। हर खाने के ऊपर राशि का क्रमांक है (1 = मेष … 12 = मीन), और अंदर उस राशि के ग्रह।'],
+    ['रंग बदलें', '"रंग बदलें" बटन से शीट के रंग बदलते हैं। यह सिर्फ़ दिखावट है, हिसाब पर असर नहीं।'],
+  ];
+  const list = steps.map(([t, d], i) => `<li><b>${i + 1}. ${esc(t)}</b><br>${esc(d)}</li>`).join('');
+  const example = chartBlock(cc, 'उदाहरण शीट: 16 दिसंबर 2026, दोपहर 12 बजे IST',
+    `लग्न: ${RASHI[cc.a]} (D1), ${RASHI[cc.a9]} (D9)। स्थान: ${place.name}। यही चित्र किसी भी पंक्ति पर टैप करने पर दिखता है।`);
+  return `<div class="gc-guide"><h2>उपयोग-विधि</h2><ol style="padding-left:20px">${list}</ol>
+  <h3 style="font-size:15px;margin:14px 0 6px">खोज कैसे करें</h3>
+  <p>खोज बॉक्स में जो शब्द लिखेंगे, वह चुने हुए टैब और वर्ष की हर पंक्ति में ढूँढा जाता है। बड़े-छोटे अक्षर का फ़र्क नहीं पड़ता।</p>
+  <ul style="padding-left:20px"><li><b>शनि</b>: शनि से जुड़ी घटनाएँ (ग्रह-घटनाएँ टैब)</li><li><b>तुला</b>: तुला राशि वाली हर पंक्ति</li><li><b>वक्री</b> या <b>मार्गी</b>: वक्री/मार्गी होने की तारीख़ें</li><li><b>वर्गोत्तम</b>: वर्गोत्तम होने वाली घटनाएँ</li><li><b>16 दिस</b>: 16 दिसंबर की घटना</li><li><b>2026-12</b>: दिसंबर (मासिक टैब में)</li></ul>
+  <p class="gc-note">ध्यान दें: खोज सिर्फ़ चुने हुए वर्ष में होती है। दूसरे साल के लिए पहले वर्ष बदलें।</p>
+  <img src="/gochar-search-help.png" alt="खोज बॉक्स और नतीजों का उदाहरण" style="width:100%;max-width:390px;display:block;border-radius:8px;border:1px solid var(--gc-line,#d98a4c);margin:8px 0">
+  ${example}</div>`;
+}
+
+function body(place) {
+  const yearOpts = SHEET_YEARS.map(y => `<option value="${y}"${String(y) === String(ST.year) ? ' selected' : ''}>${y}</option>`).join('');
+  const tabs = [['yearly', 'वार्षिक फलादेश'], ['monthly', 'मासिक कुंडली और ग्रह'], ['events', 'ग्रह-घटनाएँ'], ['guide', 'उपयोग-विधि']]
+    .map(([k, l]) => `<button type="button" data-gs="${k}" aria-pressed="${ST.tab === k}">${l}</button>`).join('');
+  let tools = `<div class="gc-tools">${tabs}</div>`;
+  if (ST.tab !== 'guide') tools += `<div class="gc-tools"><select data-gy aria-label="वर्ष">${yearOpts}</select><input type="search" data-gq value="${esc(ST.q)}" placeholder="खोजें…" aria-label="खोजें"><button type="button" data-gp>रंग बदलें</button></div>`;
+  let content;
+  if (ST.tab === 'guide') content = guideHtml(place);
+  else if (ST.err) content = `<p class="gc-load">इस समय शीट नहीं बन पाई। पेज दोबारा खोलें।</p>`;
+  else {
+    const data = ST.cache[keyOf(ST.year, place)];
+    if (!data) content = `<p class="gc-load">${esc(ST.year)} की कुंडली और फलादेश की गणना हो रही है… (पहली बार कुछ सेकंड लगते हैं)</p>`;
+    else {
+      const s = sheetHtml(data);
+      content = `${s.panel}<div class="gc-count">${s.count} · ${ST.tab === 'yearly' ? 'वार्षिक' : ST.tab === 'monthly' ? 'मासिक' : 'घटनाएँ'}</div>${s.table}
+      <p class="gc-note">★ = फलादेश का स्तर (5 में से)। D1 = राशि चक्र, D9 = नवांश। स्थान: ${esc(place.name)}। तारीख़ दिन-स्तर पर।</p>`;
+    }
   }
-  return h + `<div class="gc-mid"><strong>ग्रह-स्थिति</strong><span>${esc(label)}</span><span style="opacity:.7">दोपहर 12 बजे (IST)</span></div></div>`
-    + '<div class="gc-leg">(व) = वक्री &nbsp; * = वर्गोत्तम &nbsp; रा/के = राहु/केतु (सदा वक्री)</div>';
+  return `${CSS}<div class="gc-root" style="${paletteVars()}"><h2>गोचर, फलादेश और कुंडली (${SHEET_YEARS[0]}–${SHEET_YEARS[SHEET_YEARS.length - 1]})</h2>${tools}${content}</div>`;
 }
 
-function selectHTML(path, opts, val) {
-  return `<select data-g="${path}">${opts.map(([v, l]) => `<option value="${v}" ${+v === +val ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+// भारी गणना: केवल चुना हुआ वर्ष, एक बार; पूरी होने पर refresh
+function ensureData(year, place, refresh) {
+  const key = keyOf(year, place);
+  if (ST.cache[key] || ST.busy === key || ST.err) return;
+  ST.busy = key;
+  setTimeout(() => {
+    try { ST.cache[key] = buildGocharData(place, [Number(year)]); } catch (e) { ST.err = true; console.error(e); }
+    ST.busy = null;
+    refresh();
+  }, 30);
 }
 
-function controls() {
-  const { y, m, d } = GC_STATE, yrs = [], days = [];
-  for (let i = GOCHAR_MIN; i <= GOCHAR_MAX; i++) yrs.push([i, i]);
-  for (let i = 1; i <= daysInMonth(y, m); i++) days.push([i, i]);
-  return `<div class="gc-f"><label>साल${selectHTML('y', yrs, y)}</label><label>महीना${selectHTML('m', MONTHS_HI.map((n, i) => [i + 1, n]), m)}</label><label>तारीख़${selectHTML('d', days, d)}</label><button type="button" data-gnow="1">आज</button></div>`;
-}
-
-function positionBox() {
-  const { y, m, d } = GC_STATE, ms = istMs(y, m, d, 12, 0), pos = positionsAt(ms), lab = fmtDate(ms);
-  const rows = pos.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.rashi)} ${p.deg.toFixed(1)}°</td><td>${esc(p.nakshatra)} (चरण ${p.pada})</td><td>${p.retro && p.key !== 'rahu' && p.key !== 'ketu' ? '<b class="gc-rt">वक्री</b>' : esc(p.chaal)}${p.vargottama ? '<span class="gc-tag v">वर्गोत्तम</span>' : ''}</td><td>${esc(p.navamsa)}</td></tr>`).join('');
-  return `<div class="pg-box"><h2>ग्रहों की स्थिति · ${esc(lab)}</h2>${controls()}${chart(pos, lab)}
-    <div class="gc-w"><table class="gc-t"><thead><tr><th>ग्रह</th><th>राशि और अंश</th><th>नक्षत्र</th><th>चाल / स्थिति</th><th>नवांश राशि</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="pg-note">निरयण (लाहिरी) गणना, भारतीय समय के दोपहर 12 बजे के लिए। वर्गोत्तम: ग्रह की राशि और नवांश राशि एक ही हो। चंद्रमा तेज़ चलता है, इसलिए दिन में उसकी राशि बदल सकती है।</p></div>`;
-}
-
-function monthBox() {
-  const { y, m } = GC_STATE, ev = monthEvents(y, m);
-  const rows = ev.length ? ev.map(e => `<div class="gc-ev"><span>${esc(fmtDT(e.ms))}</span><span>${esc(e.text)}</span></div>`).join('') : '<p class="pg-note">इस महीने कोई राशि-परिवर्तन, वक्री-मार्गी या वर्गोत्तम बदलाव नहीं है।</p>';
-  return `<div class="pg-box"><h2>${esc(MONTHS_HI[m - 1])} ${y} के गोचर</h2>${rows}</div>`;
-}
-
-function retroBox(yd) {
-  const per = a => `${a.from == null ? 'वर्ष के आरंभ' : fmtDate(a.from)} से ${a.to == null ? 'वर्ष के अंत के बाद तक' : fmtDate(a.to)}`;
-  const names = { mars: 'मंगल', mercury: 'बुध', jupiter: 'गुरु', venus: 'शुक्र', saturn: 'शनि' };
-  let rows = '';
-  for (const g of ['mercury', 'venus', 'mars', 'jupiter', 'saturn']) {
-    const r = yd.retro[g];
-    rows += `<tr><td><b>${names[g]}</b></td><td>${r.length ? r.map(a => esc(per(a))).join('<br>') : 'इस वर्ष वक्री नहीं'}</td></tr>`;
-  }
-  return `<div class="pg-box"><h2>${yd.year} के वक्री और मार्गी</h2><div class="gc-w"><table class="gc-t"><thead><tr><th>ग्रह</th><th>वक्री अवधि (वक्री होने से मार्गी होने तक)</th></tr></thead><tbody>${rows}
-    <tr><td><b>राहु-केतु</b></td><td>हमेशा वक्री चलते हैं (औसत गणना)</td></tr><tr><td><b>सूर्य-चंद्र</b></td><td>कभी वक्री नहीं होते</td></tr></tbody></table></div></div>`;
-}
-
-function ingressBox(yd) {
-  const order = ['jupiter', 'saturn', 'rahu', 'ketu', 'mars', 'venus', 'mercury', 'sun'], nm = { jupiter: 'गुरु', saturn: 'शनि', rahu: 'राहु', ketu: 'केतु', mars: 'मंगल', venus: 'शुक्र', mercury: 'बुध', sun: 'सूर्य' };
-  const body = order.map((g, i) => {
-    const l = yd.ingress[g];
-    return `<details class="gc-d" ${i < 4 ? 'open' : ''}><summary>${nm[g]} (${l.length} राशि-परिवर्तन)</summary><div>${l.length ? l.map(e => `<p>${esc(fmtDT(e.ms))} — ${esc(e.text)}</p>`).join('') : '<p>इस वर्ष राशि नहीं बदलती।</p>'}</div></details>`;
-  }).join('');
-  return `<div class="pg-box"><h2>${yd.year} के राशि-परिवर्तन (गोचर)</h2>${body}</div>`;
-}
-
-function vargBox(yd) {
-  const order = ['jupiter', 'saturn', 'mars', 'venus', 'mercury', 'sun', 'rahu', 'ketu'], nm = { jupiter: 'गुरु', saturn: 'शनि', rahu: 'राहु', ketu: 'केतु', mars: 'मंगल', venus: 'शुक्र', mercury: 'बुध', sun: 'सूर्य' };
-  const body = order.map(g => {
-    const l = yd.varg[g];
-    return `<details class="gc-d"><summary>${nm[g]} (${l.length} अवधि)</summary><div>${l.length ? l.map(w => `<p>${esc(w.rashi)} में: ${esc(w.from == null ? 'वर्ष के आरंभ' : fmtDT(w.from))} से ${esc(w.to == null ? 'वर्ष के अंत के बाद तक' : fmtDT(w.to))}</p>`).join('') : '<p>इस वर्ष वर्गोत्तम नहीं होता।</p>'}</div></details>`;
-  }).join('');
-  return `<div class="pg-box"><h2>${yd.year} के वर्गोत्तम ग्रह</h2>${body}<p class="pg-note">वर्गोत्तम ग्रह वह है जिसकी राशि और नवांश राशि एक ही हो; परंपरा में इसे बलवान माना जाता है। चंद्रमा की वर्गोत्तम अवधि बहुत छोटी होती है, इसलिए ऊपर की ग्रह-स्थिति तालिका में देखें।</p></div>`;
-}
-
-export function makeGocharPages({ refresh }) {
+export function makeGocharPages({ refresh, getPlace }) {
   const bind = root => {
-    root.querySelectorAll('[data-g]').forEach(el => el.addEventListener('change', () => {
-      const k = el.dataset.g; GC_STATE[k] = +el.value;
-      GC_STATE.d = Math.min(GC_STATE.d, daysInMonth(GC_STATE.y, GC_STATE.m));
-      refresh();
-    }));
-    root.querySelector('[data-gnow]')?.addEventListener('click', () => {
-      const n = istParts(Date.now());
-      if (n.y >= GOCHAR_MIN && n.y <= GOCHAR_MAX) Object.assign(GC_STATE, n); else Object.assign(GC_STATE, { y: GOCHAR_MIN, m: 1, d: 1 });
-      refresh();
-    });
+    root.querySelectorAll('[data-gs]').forEach(b => b.addEventListener('click', () => { ST.tab = b.dataset.gs; ST.sel = 0; refresh(); }));
+    root.querySelectorAll('[data-gy]').forEach(el => el.addEventListener('change', () => { ST.year = el.value; ST.sel = 0; refresh(); }));
+    root.querySelectorAll('[data-gq]').forEach(el => el.addEventListener('change', () => { ST.q = el.value; ST.sel = 0; refresh(); }));
+    root.querySelectorAll('[data-gp]').forEach(b => b.addEventListener('click', () => { ST.pal = (ST.pal + 1) % PALETTES.length; refresh(); }));
+    root.querySelectorAll('[data-gr]').forEach(tr => tr.addEventListener('click', () => { ST.sel = +tr.dataset.gr; refresh(); }));
   };
   return {
     gochar: {
       tool: () => '',
       body: () => {
-        const yd = yearData(GC_STATE.y);
-        const note = GC_STATE.y > 2050 ? '<p class="pg-note">2050 के बाद के ग्रह-स्थान अनुमानित गणना हैं; राशि-बदल और वक्री-मार्गी की तारीख़ें कुछ दिन आगे-पीछे हो सकती हैं।</p>' : '';
-        return `${CSS}${positionBox()}${monthBox()}${retroBox(yd)}${ingressBox(yd)}${vargBox(yd)}${note}`;
+        const place = getPlace() || DEFAULT_PLACE;
+        if (ST.tab !== 'guide') ensureData(ST.year, place, refresh);
+        return body(place);
       },
       bind
     }

@@ -150,9 +150,20 @@ function addLogo() {
   bar.appendChild(img);
 }
 
+// हेडर में छोटा प्रशासन-आइकन (सबको दिखता है; खोलने पर सिर्फ़ मालिक का Google लॉगिन चलता है)
+function addAdminIcon() {
+  const bar = document.querySelector(".topbar");
+  if (!bar || bar.querySelector(".admin-ico")) return;
+  const a = document.createElement("a");
+  a.className = "admin-ico"; a.href = "/admin.html"; a.title = "प्रशासन"; a.setAttribute("aria-label", "प्रशासन");
+  a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="currentColor"/></svg>';
+  bar.appendChild(a);
+}
+
 export function mountDashboard(place = DEFAULT_PLACE) {
   mountPages(); // "और देखें" बटन के पूरे पेज
   addLogo();
+  addAdminIcon();
   const anchor = document.querySelector(".date-strip");
   if (!anchor || document.querySelector("#dash-top")) return;
 
