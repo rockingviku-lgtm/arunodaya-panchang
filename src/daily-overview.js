@@ -115,7 +115,7 @@ export async function loadDailyOverview(date){
       <p class="daily-note"><a href="/lagna.html">अलग लग्न पेज खोलें →</a> · <a href="/daily-overview.html">पूरा दैनिक पंचांग →</a> · <a href="/festivals.html">व्रत और त्योहार →</a></p>
       <div class="daily-subhead"><h3>दिन के शुभ / अशुभ समय</h3></div><div class="daily-times">${period('राहुकाल',data.periods.rahu)}${period('गुलिक काल',data.periods.gulika)}${period('यमगण्ड',data.periods.yamaganda)}${period('अभिजीत मुहूर्त',data.periods.abhijit)}</div>
       <div class="daily-subhead"><h3>व्रत और त्योहार</h3></div><p class="daily-note">इस तारीख के लिए स्थानीय व्रत/त्योहार सूची अभी उपलब्ध नहीं है। तिथि-आधारित त्योहार सूची जोड़े बिना कोई त्योहार अनुमान से नहीं दिखाया जाएगा।</p>
-      <p class="daily-disclaimer">गणना लाहिरी अयनांश, Swiss Ephemeris और सूर्योदय के अनुमान पर आधारित है। क्षेत्रीय पंचांग परंपरा के अनुसार कुछ समय में अंतर हो सकता है।</p>
+      <p class="daily-disclaimer">गणना खगोलीय गणनाओं (लाहिरी अयनांश) और स्थानीय सूर्योदय-सूर्यास्त की गणना पर आधारित है। क्षेत्रीय पंचांग परंपरा के अनुसार कुछ समय में अंतर हो सकता है।</p>
     </section>`;
     const refreshed=$('#daily-city');
     refreshed?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();loadDailyOverview(chosenDate);}});

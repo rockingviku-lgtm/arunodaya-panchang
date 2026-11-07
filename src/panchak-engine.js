@@ -135,7 +135,7 @@ async function getSunTimes(dateText, lat, lon, offsetMinutes) {
           return {
             sunrise,
             sunset,
-            source: "IMD Sun/Moon API"
+            source: "स्थानीय सूर्योदय-सूर्यास्त गणना"
           };
         }
 
@@ -155,7 +155,8 @@ async function getSunTimes(dateText, lat, lon, offsetMinutes) {
     sunset: sunEventUtc(
       dateText, lat, lon, false, offsetMinutes
     ),
-    source: `NOAA अनुमान — ${imdFailure}`
+    source: "स्थानीय सूर्योदय-सूर्यास्त गणना",
+    diagnostic: imdFailure
   };
 }
             
@@ -357,8 +358,8 @@ prevState = panchakNow;
   for(let ms=30*60000;ms<=9*86400000;ms+=30*60000){const cur=new Date(reference.getTime()+ms),curState=isP(cur);if(curState!==prevState){let lo=prev.getTime(),hi=cur.getTime();for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(isP(new Date(mid))===prevState)lo=mid;else hi=mid;}if(panchakNow)panchakEnd=new Date((lo+hi)/2);else panchakStart=new Date((lo+hi)/2);break;}prev=cur;prevState=curState;}
   const weekday=new Date(Date.UTC(Number(date.slice(0,4)),Number(date.slice(5,7))-1,Number(date.slice(8,10)))).getUTCDay();
   const periods=getDaySegments(sunrise,sunset,weekday);
-  return {date,place,latitude,longitude,weekday:WEEKDAYS[weekday],sunrise,sunset,reference,tithi:{...tithi,end:tithiEnd},nakshatra:{...nak,end:nakEnd},yoga:{...yoga,end:yogaEnd},karana:{...karana,end:karanaEnd},moonSign:Math.floor(p.moon/30),sunSign:Math.floor(p.sun/30),panchak:{active:panchakNow,start:panchakStart,end:panchakEnd},periods,timezoneMinutes:offset,ayanamsa:p.ayanamsa,calculation:`Swiss Ephemeris browser / Moshier + Lahiri ayanamsha; sunrise/sunset ${sunTimes.source}`,
-accuracyNote:"आज के सूर्योदय/सूर्यास्त के लिए IMD API का उपयोग तभी होगा जब API सफलतापूर्वक डेटा दे। API या नेटवर्क विफल होने पर NOAA अनुमान उपयोग होगा। अन्य तारीखों के लिए NOAA अनुमान उपयोग होता है। तिथि, नक्षत्र, योग और करण की गणना Swiss Ephemeris पर आधारित है। पर्व और व्रत के निर्णय के लिए प्रकाशित स्थानीय पंचांग से मिलान करें।"};
+  return {date,place,latitude,longitude,weekday:WEEKDAYS[weekday],sunrise,sunset,reference,tithi:{...tithi,end:tithiEnd},nakshatra:{...nak,end:nakEnd},yoga:{...yoga,end:yogaEnd},karana:{...karana,end:karanaEnd},moonSign:Math.floor(p.moon/30),sunSign:Math.floor(p.sun/30),panchak:{active:panchakNow,start:panchakStart,end:panchakEnd},periods,timezoneMinutes:offset,ayanamsa:p.ayanamsa,calculation:`खगोलीय गणना (लाहिरी अयनांश); सूर्योदय/सूर्यास्त: ${sunTimes.source}`,
+accuracyNote:"सूर्योदय और सूर्यास्त स्थान के अक्षांश-देशांतर के आधार पर स्थानीय गणना से निकाले जाते हैं। तिथि, नक्षत्र, योग और करण की गणना खगोलीय गणनाओं पर आधारित है। पर्व और व्रत के निर्णय के लिए प्रकाशित स्थानीय पंचांग से मिलान करें।"};
 }
 export function formatPanchangTime(date, offset=330) { return fmtTime(date,offset); }
 export function formatPanchangDateTime(date, offset=330) { return fmtDateTime(date,offset); }
